@@ -74,6 +74,8 @@ else
       OS = mingw32
     else ifneq ($(and $(findstring -pc-cygwin,$(OS)),$(findstring x86_64-,$(OS))),)
       OS = cygwin64
+    else ifneq ($(and $(findstring -linux,$(OS)),$(findstring arm-,$(OS))),)
+      OS = lin32
     else
       $(error Unimplemented machine of gcc: "$(OS)")
     endif
