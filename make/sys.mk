@@ -74,7 +74,14 @@ else
       OS = mingw32
     else ifneq ($(and $(findstring -pc-cygwin,$(OS)),$(findstring x86_64-,$(OS))),)
       OS = cygwin64
+    # GCC on ARM
     else ifneq ($(and $(findstring -linux,$(OS)),$(findstring arm-,$(OS))),)
+      OS = lin32
+    # CLANG on ARM (Raspbian)
+    else ifneq ($(and $(findstring -linux-gnueabihf,$(OS)),$(findstring armv6k-,$(OS))),)
+      OS = lin32
+    # CLANG on ARM (Debian buster)
+    else ifneq ($(and $(findstring -linux-gnueabihf,$(OS)),$(findstring armv7l-,$(OS))),)
       OS = lin32
     else
       $(error Unimplemented machine of gcc: "$(OS)")
