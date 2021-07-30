@@ -112,7 +112,7 @@ short CXmlStream_SetBuffer(CXmlStream* _this,void *buf,size_t si){
   if (!(_this->m_nMode & XMLS_READ)) return NOT_EXEC;
 
   /* Create parser */
-  _this->m_lpiParser = XML_ParserCreate(NULL);
+  _this->m_lpiParser = XML_ParserCreate("UTF-8");
   if (!_this->m_lpiParser){ CXmlStream_Destructor(_this); return XMLSERR_NOMEM; }
 
   /* Parametrize parser */
@@ -203,7 +203,7 @@ short CXmlStream_Constructor(CXmlStream* _this, const char* lpsFilename, const i
   if (!bBuffer && (_this->m_nMode & XMLS_READ))
   {
     /* Create parser */
-    _this->m_lpiParser = XML_ParserCreate(NULL);
+    _this->m_lpiParser = XML_ParserCreate("UTF-8");
     if (!_this->m_lpiParser)
     {
       CXmlStream_Destructor(_this);
