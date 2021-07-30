@@ -417,7 +417,13 @@ INT16 dlp_store(COMPLEX64 nVal, void* lpBuffer, INT16 nTypeCode)
     case T_ULONG  : *(   UINT64*)lpBuffer = ( UINT64)CLIP(nVal.x,T_ULONG ); return O_K;
     case T_LONG   : *(    INT64*)lpBuffer = (  INT64)CLIP(nVal.x,T_LONG  ); return O_K;
     case T_FLOAT  : *(  FLOAT32*)lpBuffer = (FLOAT32)CLIP(nVal.x,T_FLOAT ); return O_K;
-    case T_DOUBLE : *(  FLOAT64*)lpBuffer = (FLOAT64)CLIP(nVal.x,T_DOUBLE); return O_K;
+    case T_DOUBLE :
+    	{
+    		/* *(  FLOAT64*)lpBuffer = (FLOAT64)CLIP(nVal.x,T_DOUBLE); return O_K; */
+    		FLOAT64 tmp = (FLOAT64)CLIP(nVal.x,T_DOUBLE);
+    		dlp_memmove(lpBuffer, &tmp, sizeof(FLOAT64));
+    		return O_K;
+    	}
     case T_COMPLEX: *(COMPLEX64*)lpBuffer = CMPLXY(CLIP(nVal.x,T_DOUBLE),CLIP(nVal.y,T_DOUBLE)); return O_K;
     default      : return NOT_EXEC;
   }
@@ -439,7 +445,7 @@ COMPLEX64 dlp_fetch(const void* lpBuffer, INT16 nTypeCode)
  /* NOTE: Size of the types could be fetched from typetable.
           The resulting code would be more consistent.*/
   if (!lpBuffer) return CMPLX(0);
-  switch (nTypeCode)
+  switch (nTypeCode) 
   {
     case T_BOOL   : { return (COMPLEX64){*(     BOOL*)lpBuffer,0.};  }
     case T_UCHAR  : { return (COMPLEX64){*(    UINT8*)lpBuffer,0.};  }
@@ -447,8 +453,22 @@ COMPLEX64 dlp_fetch(const void* lpBuffer, INT16 nTypeCode)
     case T_USHORT : { return (COMPLEX64){*(   UINT16*)lpBuffer,0.};  }
     case T_SHORT  : { return (COMPLEX64){*(    INT16*)lpBuffer,0.};  }
     case T_UINT   : { return (COMPLEX64){*(   UINT32*)lpBuffer,0.};  }
-    case T_INT    : { return (COMPLEX64){*(    INT32*)lpBuffer,0.};  }
-    case T_ULONG  : { return (COMPLEX64){*(   UINT64*)lpBuffer,0.};  }
+    case T_INT    : 
+    	{ 
+    		/* return (COMPLEX64){*(    INT32*)lpBuffer,0.}; */  
+    		COMPLEX64 tmp; 
+    		dlp_memmove(&tmp.x, lpBuffer, sizeof(INT32));
+    		tmp.y = 0.0f;  
+    		return tmp;
+    	}
+    case T_ULONG  : 
+    	{ 
+    		/* return (COMPLEX64){*(   UINT64*)lpBuffer,0.}; */ 
+    		COMPLEX64 tmp; 
+    		dlp_memmove(&tmp.x, lpBuffer, sizeof(UINT64));
+    		tmp.y = 0.0f;  
+    		return tmp;
+    	}
     case T_LONG   : { return (COMPLEX64){*(    INT64*)lpBuffer,0.};  }
     case T_FLOAT  : { return (COMPLEX64){*(  FLOAT32*)lpBuffer,0.};  }
     case T_DOUBLE : { return (COMPLEX64){*(  FLOAT64*)lpBuffer,0.};  }
