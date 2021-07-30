@@ -97,8 +97,10 @@ ifneq ($(or $(findstring mingw,$(OS)),$(findstring cygwin,$(OS)),$(findstring li
   ARFLAGS  = rvs
   LFLAGS  += -lm
   ifeq ($(TRG_BASE),RELEASE)
-    CFLAGS  += -O2 -g -Wall -Wcast-align -fsanitize=undefined $(CFLAGS_GCC_REL) ${DLABPRO_GCC_CFLAGS_RELEASE}
-    LFLAGS  += -fsanitize=address,undefined -static-libasan ${DLABPRO_GCC_LFLAGS_RELEASE}
+    # CFLAGS  += -O2 -g -Wall -Wcast-align -fsanitize=undefined $(CFLAGS_GCC_REL) ${DLABPRO_GCC_CFLAGS_RELEASE}
+    # LFLAGS  += -fsanitize=address,undefined -static-libasan ${DLABPRO_GCC_LFLAGS_RELEASE}
+    CFLAGS  += -O2 -g -Wall -Wcast-align $(CFLAGS_GCC_REL) ${DLABPRO_GCC_CFLAGS_RELEASE}
+    LFLAGS  += ${DLABPRO_GCC_LFLAGS_RELEASE}
   else ## DEBUG
     CFLAGS  += -g ${DLABPRO_GCC_CFLAGS_DEBUG}
     LFLAGS  += ${DLABPRO_GCC_LFLAGS_DEBUG}
