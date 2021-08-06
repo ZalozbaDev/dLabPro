@@ -130,6 +130,7 @@ const char **optenum_getstr(void *lpDst){
   else if(lpDst==&rCfg.eIn) return recoin_str;
   else if(lpDst==&rCfg.rSearch.eTyp) return recosearchtyp_str;
   else if(lpDst==&rCfg.rRej.eTyp) return recorejtyp_str;
+  else if(lpDst==&rCfg.rVAD.eVadType) return recovadtyp_str;
   else usage("Unknown enum in setoptenum");
   return NULL;
 }

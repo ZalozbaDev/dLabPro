@@ -48,6 +48,7 @@ BOOL CGEN_IGNORE VAD_SINGLE_PFATHR(VAD_FTYPE *lpFrame,INT32 nDim,VAD_FTYPE nThr)
   INT32 nI;
   VAD_FTYPE nPow=0.;
   for(nI=0;nI<nDim;nI++) nPow+=exp(lpFrame[nI])*exp(lpFrame[nI]);
+  /* printf("PFA=%.2f ", (nPow/nDim)); */
   return nPow/nDim>nThr;
 }
 

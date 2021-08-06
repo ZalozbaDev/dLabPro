@@ -363,7 +363,7 @@ struct recoopt {
   { "vad.maxsp",       OT_INT,   FALSE, &rCfg.rVAD.nMaxSp       },
   { "vad.sigmin",      OT_INT,   FALSE, &rCfg.rVAD.nSigMin      },
   { "vad.force",       OT_BOOL,  FALSE, &rCfg.bVADForce         },
-  { "vad.type",        OT_BOOL,  TRUE,  &rCfg.rVAD.eVadType     },
+  { "vad.type",        OT_ENUM,  TRUE,  &rCfg.rVAD.eVadType     },
   { "vad.pfathr",      OT_FLOAT, TRUE,  &rCfg.rVAD.nPfaThr      },
   { "noise_reduce",    OT_BOOL,  FALSE, &rCfg.bNoiseRdc         },
   { "noise_reduce.len",OT_INT,   FALSE, &rCfg.nNoiseRdcLen      },
