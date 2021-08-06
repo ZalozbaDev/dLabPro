@@ -749,11 +749,11 @@ BOOL vad_pfa_gmm(FLOAT32 *lpFPfa)
 
 BOOL vad_pfa(FLOAT32 *lpFPfa)
 {
-  switch(rCfg.rVAD.nVadType){
-  case VAD_NONE: return TRUE;
-  case VAD_ENG:
+  switch(rCfg.rVAD.eVadType){
+  case RV_none: return TRUE;
+  case RV_eng:
     return dlm_vad_single_pfaengF(lpFPfa,rCfg.rDFea.nPfaDim,rCfg.rVAD.nPfaThr);
-  case VAD_GMM:
+  case RV_gmm:
     if(!rCfg.rDVAD.itGM) return TRUE;
     return vad_pfa_gmm(lpFPfa);
   }

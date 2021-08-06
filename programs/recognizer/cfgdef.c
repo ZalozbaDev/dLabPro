@@ -206,6 +206,8 @@ vad.minsp = 40\n\
 vad.maxsp = 600\n\
 vad.sigmin = 3267\n\
 vad.nolimit = no\n\
+vad.type = eng\n\
+vad.pfathr = 20000.\n\
 \n\
 # Noise reduction (simple algorithm!)\n\
 noise_reduce = no\n\

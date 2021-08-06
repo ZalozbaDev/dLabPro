@@ -383,9 +383,9 @@ void pfainit(){
 }
 
 void vadinit(){
-  rCfg.rVAD.nVadType      = VAD_GMM;
+  /* rCfg.rVAD.nVadType      = VAD_GMM; */
   rCfg.rVAD.nSigThr       = 0.001;
-  rCfg.rVAD.nPfaThr       = 10000.;
+  /* rCfg.rVAD.nPfaThr       = 10000.; */
   rCfg.rVAD.nGmmThr       = -log(0.4);
   dlm_vad_initparam(&rCfg.rVAD.lpBas);
   rCfg.rVAD.lpBas.nPre    = 10;
