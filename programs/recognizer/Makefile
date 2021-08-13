@@ -58,7 +58,8 @@ LIBS      = \
 	${EXT_LPTH}/libsndfile$(LET) $(LPOST) \
 	$(EXT_LPTH)/zlib$(LET) $(LPOST)       \
 	$(EXT_LPTH)/xpat$(LET) $(LPOST)       \
-	$(EXT_LPTH)/kazlib$(LET) $(LPOST)
+	$(EXT_LPTH)/kazlib$(LET) $(LPOST)     \
+	../../../webrtc-audio-processing/build/webrtc/common_audio/libcommon_audio.a
 LIBS_DEPR = 
 LIBS_SYS = portaudio
 
