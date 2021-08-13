@@ -109,7 +109,7 @@ ifneq ($(or $(findstring mingw,$(OS)),$(findstring cygwin,$(OS)),$(findstring li
     CFLAGS  += -x c++
   endif
   ifeq ($(or $(findstring mingw,$(OS)),$(findstring cygwin,$(OS))),)
-    CFLAGS  += -ansi
+    CFLAGS  += 
   else ## lin
     LFLAGS  += -static
   endif
