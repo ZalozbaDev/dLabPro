@@ -251,7 +251,7 @@ void dlg_upd(const char *lpsRes)
     CFst_RegexMatch_int(itRgx,lpsRes,&nS,&nL);
     if(nS<0 || nL<0) continue;
     searchload(*CFst_STI_TTer(rCfg.rDDlg.lpTI,lpT));
-    routput(O_sta,1,"voc change: %i",rTmp.nFstSel);
+    routput(O_sta,1,"==============================> voc change: %i",rTmp.nFstSel);
     if(rCfg.rDDlg.lpTI->nOfTTos>0 && !CData_IsEmpty(AS(CData,rCfg.rDDlg.itDlg->os)))
 		routput(O_sta,0," (%s)",
 			CData_Sfetch(AS(CData,rCfg.rDDlg.itDlg->os),
@@ -375,7 +375,15 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
 
   nad = orw>=0 && ofw>=0 ? fi[0].rw ? ABS(fi[0].rw-fi[0].fw) / ABS(fi[0].rw) : tad : 0.f;
   ned = fi[0].n ? 1.f-fi[0].neq / (FLOAT32)fi[0].n : ted;
-  routput(O_dbg,1,"rec nad: %.4g ned: %.4g tnad: %.4g tned: %.4g\n",nad,ned,tad,ted);
+  routput(O_dbg, 1, "rec | nad: %s %.4g %s tnad: %.4g | ned: %s%.4g%s tned: %.4g | \n", 
+  	  (nad < tad) ? "" : "$$$$",
+  	  nad, 
+  	  (nad < tad) ? "" : "$$$$",
+  	  tad, 
+  	  (ned < ted) ? "" : "$$$$",
+  	  ned, 
+  	  (ned < ted) ? "" : "$$$$",
+  	  ted);
 
   dlp_free(frm);
   if(bfvr) dlp_free(lvl);
@@ -425,7 +433,11 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     snprintf(rTmp.rRes.sLastRes,254,"%s%s%s",nRAcc?"":"(",lpsRRes,nRAcc?"":")");
     routput(O_cmd,1,"");
     if(sLab) routput(O_cmd,0,"lab: %s ",sLab);
-  	routput(O_cmd,0,"res: %s ",rTmp.rRes.sLastRes);
+    if (nRAcc == 0) {
+    	routput(O_cmd,0,"---------------------------------------------- res: %s ",rTmp.rRes.sLastRes);
+    } else {
+    	routput(O_cmd,0,"++++++++++++++++++++++++++++++++++++++++++++++ res: %s ",rTmp.rRes.sLastRes);
+    }
     if(sLab) routput(O_cmd,0,"cor: %i ",nRCor);
     if(rCfg.rRej.eTyp!=RR_off) routput(O_cmd,0,"acc: %i",nRAcc);
     routput(O_cmd,0,"\n");
@@ -1075,8 +1087,8 @@ INT16 online(struct recosig *lpSig)
       /* VAD Debug output */
       if(nVadSfa!=nVadSfaLast)
       {
-        const char* s = "on";
-        if      (nVadSfa==0) s = "off";
+        const char* s = "on #############POSKAM##################";
+        if      (nVadSfa==0) s = "off #################NJEPOSKAM##################";
         else if (nVadSfa <0) s = "offline";
         routput(O_dbg,1,"vad %s at frame %i\n",s,nFrame-lpVadState.nDelay);
         nVadSfaLast=nVadSfa;
@@ -1237,7 +1249,17 @@ INT16 online(struct recosig *lpSig)
         if(!lpSig && !dlp_strcmp(rTmp.rRes.sLastRes,"__NAVI__")) break;
         nLastActive=nFrame;
       }else{
+      	  /*
         routput(O_sta,1,"rec skip for %s\n",nFea<rCfg.rVAD.nMinSp ? "time length" : "signal maximum");
+        */
+        if (nFea < rCfg.rVAD.nMinSp)
+        {
+        	routput(O_sta,1,"rec skip, too short (%d < %d)\n", nFea, rCfg.rVAD.nMinSp);
+        }
+        if (nSigMax < rCfg.rVAD.nSigMin)
+        {
+        	routput(O_sta,1,"rec skip, too silent (%d < %d)\n", nSigMax, rCfg.rVAD.nSigMin);
+        }
       }
       if(!rCfg.rSearch.bIter) CData_Array(rTmp.idFea,T_FLOAT,nMsf,lpVadParam->nMaxSp);
       nFea=0;
