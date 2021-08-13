@@ -27,6 +27,12 @@
 #include "recognizer.h"
 #include "dlp_math.h"
 
+#define __USE_WEBRTC_VAD
+
+#ifdef __USE_WEBRTC_VAD
+#include "../../../webrtc-audio-processing/webrtc/common_audio/vad/include/webrtc_vad.h"
+#endif
+
 #ifdef __USE_PORTAUDIO
 #include "portaudio.h"
 #endif
@@ -50,6 +56,12 @@
 
 INT64 nFrame = 0;         /* Global frame number */
 INT64 nLastActive = 0;    /* Frame number of most recent activity */
+
+// dirty result passing via file-global variable
+#ifdef __USE_WEBRTC_VAD
+static VadInst* rtcVadInst;
+static BOOL rtcVadResult = FALSE;
+#endif
 
 struct log {
   FILE *fdRaw;
@@ -749,6 +761,9 @@ BOOL vad_pfa_gmm(FLOAT32 *lpFPfa)
 
 BOOL vad_pfa(FLOAT32 *lpFPfa)
 {
+  BOOL tmpPFAResult;
+  static int rtcPFARatio = 0;
+  
   switch(rCfg.rVAD.eVadType){
   case RV_none: return TRUE;
   case RV_eng:
@@ -756,6 +771,26 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
   case RV_gmm:
     if(!rCfg.rDVAD.itGM) return TRUE;
     return vad_pfa_gmm(lpFPfa);
+  case RV_rtc:
+#ifdef __USE_WEBRTC_VAD
+	tmpPFAResult= dlm_vad_single_pfaengF(lpFPfa,rCfg.rDFea.nPfaDim,rCfg.rVAD.nPfaThr);
+	if (tmpPFAResult != rtcVadResult) {
+		if (tmpPFAResult == TRUE) {
+			rtcPFARatio++;
+		} else {
+			rtcPFARatio--;
+		}
+		if (0) {
+		printf("PFA result would be %s, WEBRTC is %s, ratio=%d.\n", 
+			(tmpPFAResult == FALSE) ? "FALSE" : "TRUE",
+			(rtcVadResult == FALSE) ? "FALSE" : "TRUE",
+			rtcPFARatio);
+		}
+	}
+  	return rtcVadResult;
+#else
+	return FALSE;
+#endif
   }
   return TRUE;
 }
@@ -874,6 +909,12 @@ INT16 online(struct recosig *lpSig)
     /* Init portaudio */
     if(Pa_Initialize()!=paNoError) return NOT_EXEC;
 
+#ifdef __USE_WEBRTC_VAD
+	rtcVadInst = WebRtcVad_Create();
+	if (WebRtcVad_Init(rtcVadInst) != 0) return NOT_EXEC;
+	if (WebRtcVad_set_mode(rtcVadInst, 0) != 0) return NOT_EXEC;
+#endif
+    
     /* Init signal fetch buffer */
     memset(lpBuf.lpDat,0,sizeof(lpBuf.lpDat[0])*PABUF_SIZE*PABUF_NUM);
     memset(lpWindow,0,sizeof(lpWindow[0])*400);
@@ -988,6 +1029,23 @@ INT16 online(struct recosig *lpSig)
         if (nPeak>0.f) nPeak = 20*log10(nPeak); else nPeak = -96;
         routput(O_gui,1,"frm: %i lvl: %0.1f tim: %03i\n",nFrame,nPeak,nTime);
       }
+      
+#ifdef __USE_WEBRTC_VAD
+	  /* need to convert from float32 to int16 */
+	  int16_t rtcAudioBuffer[nCrate];
+	  for (int bufCtr = 0; bufCtr < nCrate; bufCtr++)
+	  {
+	  	  rtcAudioBuffer[bufCtr] = lpDat[bufCtr] * 32767.0f;
+	  }
+	  
+	  int tmpRtcVadResult = WebRtcVad_Process(rtcVadInst, rCfg.nSigSampleRate, rtcAudioBuffer, nCrate);
+	  if (tmpRtcVadResult == -1) {
+	  	  printf("WebRtcVad_Process() returned an error!\n");
+	  	  rtcVadResult = FALSE;
+	  } else {
+	  	  rtcVadResult = (tmpRtcVadResult == 1) ? TRUE : FALSE;
+	  }
+#endif
 
       /* Do primary feature analysis and vad decision for that frame */
       if(lpLog.fdRaw) fwrite(lpDat+nWlen-nCrate,sizeof(FLOAT32),nCrate,lpLog.fdRaw);
@@ -1028,13 +1086,19 @@ INT16 online(struct recosig *lpSig)
           if(rCfg.rRej.eTyp==RR_phn) CFstsearch_Restart(rCfg.rDSession.itSPr);
         }
       }
-      routput(O_vad,0,"pF%4i: V:%i Sw:%3i => VS:%i ViS:%2i VP:%2i VC:%2i => sF%4i V:%i ",
-        nFrame,bVadPfa,nFSfaW,
-        lpVadState.nState,lpVadState.nInState,lpVadState.nPre,lpVadState.nChange,
-        nFrame-lpVadState.nDelay,nVadSfa);
-      if (nVadSfa>0) routput(O_vad,0,"Sr:%3i",nFSfaR);
+      if (0)
+      {
+		  routput(O_vad,0,"pF%4i: V:%i Sw:%3i => VS:%i ViS:%2i VP:%2i VC:%2i => sF%4i V:%i ",
+			nFrame,bVadPfa,nFSfaW,
+			lpVadState.nState,lpVadState.nInState,lpVadState.nPre,lpVadState.nChange,
+			nFrame-lpVadState.nDelay,nVadSfa);
+	  }
+      if (0)
+      {
+      routput(O_vad,0,"Sr:%3i",nFSfaR);
       routput(O_vad,0," max: %5i",nSigMax);
       routput(O_vad,0," LastRes: %s\n",rTmp.rRes.sLastRes);
+      }
 
       /* Write VAD labels to label files */
       if(lpLog.fdLab1 && bVadPfa!=lpLog.bLab1){
@@ -1104,6 +1168,7 @@ INT16 online(struct recosig *lpSig)
           CFstsearch_Backtrack(rCfg.rDSession.itSP,itDC);
           nCTos=CData_FindComp(AS(CData,itDC->td),"~TOS");
           nCTis=CData_FindComp(AS(CData,itDC->td),"~TIS");
+          if (0) {
           if(nCTos>=0 && nCTis>=0 && !CData_IsEmpty(AS(CData,itDC->os))){
             INT32 nLen=0;
             routput(O_sta,1,"liveres: ");
@@ -1116,6 +1181,7 @@ INT16 online(struct recosig *lpSig)
             if(rCfg.rSearch.bPermanent){
               routput(O_sta,0," [range %i-%i (%i) - max %i]\n",nFea-nLen,nFea,nLen,nSigMax); nSigMax=0;
             }else routput(O_sta,0,"\n");
+          }
           }
           IDESTROYFST(itDC);
         }
@@ -1202,6 +1268,10 @@ INT16 online(struct recosig *lpSig)
     if(Pa_CloseStream(stream)!=paNoError) return NOT_EXEC;
     if(Pa_Terminate()!=paNoError) return NOT_EXEC;
   }
+#endif
+
+#ifdef __USE_WEBRTC_VAD
+	WebRtcVad_Free(rtcVadInst);
 #endif
 
   /* All done */
