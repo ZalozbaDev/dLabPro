@@ -437,6 +437,11 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     	routput(O_cmd,0,"---------------------------------------------- res: %s ",rTmp.rRes.sLastRes);
     } else {
     	routput(O_cmd,0,"++++++++++++++++++++++++++++++++++++++++++++++ res: %s ",rTmp.rRes.sLastRes);
+    	char reaction_command[256];
+    	reaction_command[0] = 0;
+    	strcat(reaction_command, "./reaction.sh ");
+    	strcat(reaction_command, rTmp.rRes.sLastRes);
+    	system(reaction_command);
     }
     if(sLab) routput(O_cmd,0,"cor: %i ",nRCor);
     if(rCfg.rRej.eTyp!=RR_off) routput(O_cmd,0,"acc: %i",nRAcc);
@@ -991,6 +996,10 @@ INT16 online(struct recosig *lpSig)
     {
       dlg_upd("__SLEEP__");
       nLastActive=0;
+      char reaction_command[256];
+      reaction_command[0] = 0;
+      strcat(reaction_command, "./reaction.sh __SLEEP__");
+      system(reaction_command);
     }
 
     /* Check for new signal fetched */
