@@ -50,7 +50,7 @@ inline static FLOAT64 readFLOAT64ArrayIndexFromBuffer(const void* lpBuffer, INT3
 {
 	char buf[sizeof(FLOAT64)];
 	
-	memcpy(buf, &((FLOAT64*) lpBuffer)[nArrIdx], sizeof(FLOAT64));
+	memcpy(buf, &(((FLOAT64*) lpBuffer)[nArrIdx]), sizeof(FLOAT64));
 	
 	return (FLOAT64) *buf;
 }
