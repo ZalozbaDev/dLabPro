@@ -28,6 +28,8 @@
 #include "dlp_fst.h"
 #include "dlp_math.h"
 
+#include "alignment_fixes.h"
+
 #define IFDOPRINT(A,B) \
   if (BASEINST(_this)->m_nCheck>=A && ((_this->m_nPrintstop>=0 && _this->m_nPrintstop<=B) || _this->m_nPrintstop==-2))
 
@@ -775,14 +777,14 @@ INT16 CGEN_PUBLIC CFst_Potential(CFst* _this, INT32 nUnit)
       /*
       *(FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP) = nNeAdd;
       */
-      dlp_memmove((FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP), &nNeAdd, sizeof(FST_WTYPE));
+      writeFSTWTYPEToBuffer(nNeAdd, CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP));
       lpLBrd[nS] = 0; 
       if (SD_FLG(_this,nS+nFS)&0x01)
       {
       	/*
         *(FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP) = nNeMult;
         */
-        dlp_memmove((FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP), &nNeMult, sizeof(FST_WTYPE));
+        writeFSTWTYPEToBuffer(nNeMult, CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP));
         lpLBrd[nS] = 1;
         nB++;
       }
@@ -809,9 +811,9 @@ INT16 CGEN_PUBLIC CFst_Potential(CFst* _this, INT32 nUnit)
           	FST_WTYPE Ter;
             nIni   = *CFst_STI_TIni(lpTI,lpT);
             lpPIni = (FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nIni+nFS,nIcP);
-            dlp_memmove(&Ini, lpPIni, sizeof(FST_WTYPE));
+            Ini = readFSTWTYPEFromBuffer(lpPIni);
             lpPTer = (FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS  +nFS,nIcP);
-            dlp_memmove(&Ter, lpPTer, sizeof(FST_WTYPE));
+            Ter = readFSTWTYPEFromBuffer(lpPTer);
             nW     = CFst_Wsr_Op(_this,*CFst_STI_TW(lpTI,lpT),Ter,OP_MULT);
 
             IFCHECKEX(1) nCtr[2]++;
@@ -826,7 +828,7 @@ INT16 CGEN_PUBLIC CFst_Potential(CFst* _this, INT32 nUnit)
               /*
               *lpPIni      = nW;
               */
-              dlp_memmove(lpPIni, &nW, sizeof(FST_WTYPE));
+              writeFSTWTYPEToBuffer(nW, lpPIni);
             }
           }
         }

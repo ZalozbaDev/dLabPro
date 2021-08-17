@@ -28,6 +28,8 @@
 #include "dlp_base.h" 
 #include <math.h>
 
+#include "alignment_fixes.h"
+
 #define CLIP(A,B) (A<B##_MIN ? B##_MIN : (A>B##_MAX ? B##_MAX : A ))            /* Clip numeric values               */
 
 static char __sBuf[TYPE_NAME_MAXLEN] = "";                                      /* Static type name buffer           */
@@ -421,7 +423,7 @@ INT16 dlp_store(COMPLEX64 nVal, void* lpBuffer, INT16 nTypeCode)
     	{
     		/* *(  FLOAT64*)lpBuffer = (FLOAT64)CLIP(nVal.x,T_DOUBLE); return O_K; */
     		FLOAT64 tmp = (FLOAT64)CLIP(nVal.x,T_DOUBLE);
-    		dlp_memmove(lpBuffer, &tmp, sizeof(FLOAT64));
+    		writeFLOAT64ToBuffer(tmp, lpBuffer);
     		return O_K;
     	}
     case T_COMPLEX: *(COMPLEX64*)lpBuffer = CMPLXY(CLIP(nVal.x,T_DOUBLE),CLIP(nVal.y,T_DOUBLE)); return O_K;
@@ -456,18 +458,12 @@ COMPLEX64 dlp_fetch(const void* lpBuffer, INT16 nTypeCode)
     case T_INT    : 
     	{ 
     		/* return (COMPLEX64){*(    INT32*)lpBuffer,0.}; */  
-    		COMPLEX64 tmp; 
-    		dlp_memmove(&tmp.x, lpBuffer, sizeof(INT32));
-    		tmp.y = 0.0f;  
-    		return tmp;
+    		return (COMPLEX64){convertINT32FromBuffer(lpBuffer), 0.};
     	}
     case T_ULONG  : 
     	{ 
     		/* return (COMPLEX64){*(   UINT64*)lpBuffer,0.}; */ 
-    		COMPLEX64 tmp; 
-    		dlp_memmove(&tmp.x, lpBuffer, sizeof(UINT64));
-    		tmp.y = 0.0f;  
-    		return tmp;
+    		return (COMPLEX64){convertUINT64FromBuffer(lpBuffer) ,0.};
     	}
     case T_LONG   : { return (COMPLEX64){*(    INT64*)lpBuffer,0.};  }
     case T_FLOAT  : { return (COMPLEX64){*(  FLOAT32*)lpBuffer,0.};  }
