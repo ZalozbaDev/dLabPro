@@ -49,6 +49,9 @@ endif
 ## Detect compile OS
 ## Implemented values: lin32, lin64, mingw32, mingw64, cygwin64, msv1, msv2
 
+# for alignment exceptions workarounds
+ARCHITECTURE=x86
+
 # Test #1 for MSVC
 ifneq (${DLABPRO_USE_MSVC},)
   ifeq (${DLABPRO_USE_MSVC},1)
@@ -77,12 +80,15 @@ else
     # GCC on ARM
     else ifneq ($(and $(findstring -linux,$(OS)),$(findstring arm-,$(OS))),)
       OS = lin32
+      ARCHITECTURE=arm
     # CLANG on ARM (Raspbian)
     else ifneq ($(and $(findstring -linux-gnueabihf,$(OS)),$(findstring armv6k-,$(OS))),)
       OS = lin32
+      ARCHITECTURE=arm
     # CLANG on ARM (Debian buster)
     else ifneq ($(and $(findstring -linux-gnueabihf,$(OS)),$(findstring armv7l-,$(OS))),)
       OS = lin32
+      ARCHITECTURE=arm
     else
       $(error Unimplemented machine of gcc: "$(OS)")
     endif
