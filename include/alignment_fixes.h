@@ -57,20 +57,20 @@ inline static FLOAT64 readFLOAT64ArrayIndexFromBuffer(const void* lpBuffer, INT3
 
 inline static FST_WTYPE readFSTWTYPEFromBuffer(const void* lpBuffer)
 {
-	char buf[sizeof(FST_WTYPE)];
+	FST_WTYPE tmp;
 	
-	memcpy(buf, lpBuffer, sizeof(FST_WTYPE));
+	memcpy(&tmp, lpBuffer, sizeof(FST_WTYPE));
 	
-	return (FST_WTYPE) *buf;
+	return tmp;
 }
 
 inline static FST_STYPE readFSTSTYPEFromBuffer(const void* lpBuffer)
 {
-	char buf[sizeof(FST_STYPE)];
+	FST_STYPE tmp;
 	
-	memcpy(buf, lpBuffer, sizeof(FST_STYPE));
+	memcpy(&tmp, lpBuffer, sizeof(FST_STYPE));
 	
-	return (FST_STYPE) *buf;
+	return tmp;
 }
 
 inline static void writeFSTWTYPEToBuffer(const FST_WTYPE data, void* lpBuffer)
