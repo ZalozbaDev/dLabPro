@@ -28,6 +28,8 @@
 #include "dlp_fst.h"
 #include "dlp_math.h"
 
+#include "alignment_fixes.h"
+
 /* TODO: Move to fst.def, HEADERCODE: --> */
 typedef struct tag_FST_PQU_TYPE
 {
@@ -529,7 +531,10 @@ INT16 CGEN_PROTECTED CFst_BestNUnit(CFst* _this, CFst* itSrc, INT32 nUnit, INT32
       /* Compute nCtot following the current transition */
       nT    = CFst_STI_GetTransId(lpTIX,lpTX);
       nWX   = *CFst_STI_TW(lpTIX,lpTX);
+      /*
       nPot  = *(FST_WTYPE*)(CData_XAddr(AS(CData,itSrc->sd),TD_TER(itSrc,nT)+lpTIX->nFS,nIcP));
+      */
+      nPot = readFSTWTYPEFromBuffer(CData_XAddr(AS(CData,itSrc->sd),TD_TER(itSrc,nT)+lpTIX->nFS,nIcP));
       nCtot = CFst_Wsr_Op(_this,nCacc,CFst_Wsr_Op(_this,nPot,nWX,OP_MULT),OP_MULT); /* nCacc + nWX + nPot; */
       IFCHECKEX(1)
         printf("\n state: %d \t Cacc: %f\t W: %f \t Pot: %f \t Ctot: %f\t\n",

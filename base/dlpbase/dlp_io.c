@@ -27,6 +27,8 @@
 #include "dlp_kernel.h"
 #include "dlp_base.h"
 
+#include "alignment_fixes.h"
+
 /* Forward declarations of private functions */
 void dlp_vlog(INT16 nType, const char* lpsFormat, va_list ap);
 
@@ -464,7 +466,10 @@ INT16 dlp_printx_ext(void *lpDest, void* lpBuffer, INT16 nType, INT32 nArrIdx, B
     break;}
 
   case T_DOUBLE: {
+  	/*	  
     FLOAT64 d = ((FLOAT64*)lpBuffer)[nArrIdx];
+    */
+    FLOAT64 d = readFLOAT64ArrayIndexFromBuffer(lpBuffer, nArrIdx);
     if (bExact) len = FPRINTF1(lpDest,"%.16e",(double)d); else
     if (bCols)
     {

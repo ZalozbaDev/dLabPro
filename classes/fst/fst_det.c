@@ -27,6 +27,8 @@
 #include "dlp_cscope.h" /* Indicate C scope */
 #include "dlp_fst.h"
 
+#include "alignment_fixes.h"
+
 /**
  * Adds one record to the determinization auxilary table. Each record describes
  * one transition originating in a particular state of the destination
@@ -85,8 +87,12 @@ void CGEN_PRIVATE CFst_Det_LoadAuxTable_AddRec
     printf(", ");
   }
 
-  *(FST_WTYPE*)(CData_XAddr(idAuxTab,nR,3)) =                                  /* Store accumulated weight          */
+  /* Store accumulated weight          */
+  /*
+  *(FST_WTYPE*)(CData_XAddr(idAuxTab,nR,3)) =                                  
     CFst_Wsr_Op(_this,nResW,nW,OP_MULT);
+    */
+  writeFSTWTYPEToBuffer(CFst_Wsr_Op(_this,nResW,nW,OP_MULT), CData_XAddr(idAuxTab,nR,3));
 
   IFCHECK printf("accweight=%g",(double)*(FST_WTYPE*)(CData_XAddr(idAuxTab,nR,3)));
 
@@ -721,10 +727,16 @@ INT16 CGEN_PROTECTED CFst_DeterminizeUnit(CFst* _this, CFst* itSrc, INT32 nUnit)
         nR++
       )
       {
-        /* Get input symbol and sum up output strings and weights */
+      	/* Get input symbol and sum up output strings and weights */
+      	FST_WTYPE tmpFSTValue;
+      	
         nTis    = *(FST_STYPE*)CData_XAddr(idAux,nR,1);
         nSumStr = CFst_Ssr_Add(_this->m_lpDetSt,nSumStr,*(FST_ITYPE*)CData_XAddr(idAux,nR,2));
+        /*
         nSumW   = CFst_Wsr_Op(_this,nSumW,*(FST_WTYPE*)CData_XAddr(idAux,nR,3),OP_ADD);
+        */
+        tmpFSTValue = readFSTWTYPEFromBuffer(CData_XAddr(idAux,nR,3));
+        nSumW   = CFst_Wsr_Op(_this, nSumW, tmpFSTValue, OP_ADD);
         bFsr    = (BOOL)*(BYTE*)CData_XAddr(idAux,nR,4);
 
         /* End of group */
@@ -740,15 +752,22 @@ INT16 CGEN_PROTECTED CFst_DeterminizeUnit(CFst* _this, CFst* itSrc, INT32 nUnit)
           /* Store new residuals */
           IFCHECK printf("\n       Storing residuals");
           for (nR2=nFR; nR2<=nR; nR2++)
+          {
+          	FST_WTYPE tmpFSTValueLoop = readFSTWTYPEFromBuffer(CData_XAddr(idAux,nR2,3));
+          	  
             CFst_Det_AddResidual
             (
               _this,UD_XS(_this,0)-1,*(FST_ITYPE*)CData_XAddr(idAux,nR2,0),
               CFst_Ssr_Dif(_this->m_lpDetSt,*(FST_ITYPE*)CData_XAddr(idAux,nR2,2),nSumStr),
               bFsr
               ? CFst_Wsr_NeMult(_this->m_nWsr)
+              /*
               : CFst_Wsr_Op(_this,*(FST_WTYPE*)CData_XAddr(idAux,nR2,3),nSumW,OP_DIV)
+              */
+              : CFst_Wsr_Op(_this, tmpFSTValueLoop, nSumW, OP_DIV)
             );
-
+          }
+            
           /* Check last new destination state
              (try to find previously generated identical state) */
           IFCHECK printf("\n       Comparing state residual tables (states *<-->%ld)",(long)UD_XS(_this,0)-1);

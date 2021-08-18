@@ -28,6 +28,8 @@
 #include "dlp_fst.h"
 #include "dlp_math.h"
 
+#include "alignment_fixes.h"
+
 #define IFDOPRINT(A,B) \
   if (BASEINST(_this)->m_nCheck>=A && ((_this->m_nPrintstop>=0 && _this->m_nPrintstop<=B) || _this->m_nPrintstop==-2))
 
@@ -772,11 +774,17 @@ INT16 CGEN_PUBLIC CFst_Potential(CFst* _this, INT32 nUnit)
 
     for (nS=0,nB=0; nS<nXS; nS++)
     {
+      /*
       *(FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP) = nNeAdd;
-      lpLBrd[nS] = 0;
+      */
+      writeFSTWTYPEToBuffer(nNeAdd, CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP));
+      lpLBrd[nS] = 0; 
       if (SD_FLG(_this,nS+nFS)&0x01)
       {
+      	/*
         *(FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP) = nNeMult;
+        */
+        writeFSTWTYPEToBuffer(nNeMult, CData_XAddr(AS(CData,_this->sd),nS+nFS,nIcP));
         lpLBrd[nS] = 1;
         nB++;
       }
@@ -799,21 +807,28 @@ INT16 CGEN_PUBLIC CFst_Potential(CFst* _this, INT32 nUnit)
           lpT = NULL;
           while ((lpT=CFst_STI_TtoS(lpTI,nS,lpT))!=NULL)
           {
+          	FST_WTYPE Ini;
+          	FST_WTYPE Ter;
             nIni   = *CFst_STI_TIni(lpTI,lpT);
             lpPIni = (FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nIni+nFS,nIcP);
+            Ini = readFSTWTYPEFromBuffer(lpPIni);
             lpPTer = (FST_WTYPE*)CData_XAddr(AS(CData,_this->sd),nS  +nFS,nIcP);
-            nW     = CFst_Wsr_Op(_this,*CFst_STI_TW(lpTI,lpT),*lpPTer,OP_MULT);
+            Ter = readFSTWTYPEFromBuffer(lpPTer);
+            nW     = CFst_Wsr_Op(_this,*CFst_STI_TW(lpTI,lpT),Ter,OP_MULT);
 
             IFCHECKEX(1) nCtr[2]++;
             IFDOPRINT(2,nL)
               printf("\n         %ld (w=%5g) --(w=%5g)--> %ld (w=%5g); newweight=%5g",
               (long)nIni,(double)*lpPIni,(double)*CFst_STI_TW(lpTI,lpT),(long)nS,(double)*lpPTer,(double)nW);
 
-            if (CFst_Wsr_Op(_this,*lpPIni,nW,OP_LESS))
+            if (CFst_Wsr_Op(_this,Ini,nW,OP_LESS))
             {
               if (lpLBwr[nIni]==0) nB++;
               lpLBwr[nIni] = 1;
+              /*
               *lpPIni      = nW;
+              */
+              writeFSTWTYPEToBuffer(nW, lpPIni);
             }
           }
         }
