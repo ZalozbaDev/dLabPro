@@ -48,11 +48,11 @@ inline static void writeFLOAT64ToBuffer(const FLOAT64 val, void* lpBuffer)
 
 inline static FLOAT64 readFLOAT64ArrayIndexFromBuffer(const void* lpBuffer, INT32 nArrIdx)
 {
-	char buf[sizeof(FLOAT64)];
+	FLOAT64 tmp;
 	
-	memcpy(buf, &(((FLOAT64*) lpBuffer)[nArrIdx]), sizeof(FLOAT64));
+	memcpy(&tmp, &(((FLOAT64*) lpBuffer)[nArrIdx]), sizeof(FLOAT64));
 	
-	return (FLOAT64) *buf;
+	return tmp;
 }
 
 inline static FST_WTYPE readFSTWTYPEFromBuffer(const void* lpBuffer)
