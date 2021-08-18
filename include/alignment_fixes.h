@@ -25,20 +25,20 @@
 
 inline static FLOAT64 convertINT32FromBuffer(const void* lpBuffer)
 {
-	char buf[sizeof(INT32)];
+	INT32 tmp;
 	
-	memcpy(buf, lpBuffer, sizeof(INT32));
+	memcpy(&tmp, lpBuffer, sizeof(INT32));
 	
-	return (FLOAT64) *buf;
+	return (FLOAT64) tmp;
 }
 
 inline static FLOAT64 convertUINT64FromBuffer(const void* lpBuffer)
 {
-	char buf[sizeof(UINT64)];
+	UINT64 tmp;
 	
-	memcpy(buf, lpBuffer, sizeof(UINT64));
+	memcpy(&tmp, lpBuffer, sizeof(UINT64));
 	
-	return (FLOAT64) *buf;
+	return (FLOAT64) tmp;
 }
 
 inline static void writeFLOAT64ToBuffer(const FLOAT64 val, void* lpBuffer)
