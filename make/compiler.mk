@@ -127,6 +127,9 @@ else ## DEBUG
   CFLAGS += -D_DEBUG
 endif
 
+## Specify architecture
+CFLAGS += -DARCHITECTURE_${ARCHITECTURE}
+
 ## Filter-out Variables
 CFLAGS := $(filter-out $(CFLAGS_FILTEROUT),$(CFLAGS))
 
