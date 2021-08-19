@@ -24,18 +24,26 @@
 #include "dlp_cscope.h" /* Indicate C scope */
 #include "dlp_fst.h"
 
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 
 #define STRING2(x) #x
 #define STRING(x) STRING2(x)
 
 #warning "Applying alignment exception workarounds!"
 
+#else
+
+#ifdef ARCHITECTURE_X86
+
+#else
+#error "Invalid or missing definition of ARCHITECTURE - check compiler.mk"
+#endif
+
 #endif
 
 __inline__ static FLOAT64 convertINT32FromBuffer(const void* lpBuffer)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	INT32 tmp;
 	
 	memcpy(&tmp, lpBuffer, sizeof(INT32));
@@ -48,7 +56,7 @@ __inline__ static FLOAT64 convertINT32FromBuffer(const void* lpBuffer)
 
 __inline__ static FLOAT64 convertUINT64FromBuffer(const void* lpBuffer)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	UINT64 tmp;
 	
 	memcpy(&tmp, lpBuffer, sizeof(UINT64));
@@ -61,7 +69,7 @@ __inline__ static FLOAT64 convertUINT64FromBuffer(const void* lpBuffer)
 
 __inline__ static void writeFLOAT64ToBuffer(const FLOAT64 val, void* lpBuffer)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	memcpy(lpBuffer, &val, sizeof(FLOAT64));
 #else
 	*(FLOAT64*)lpBuffer = val;
@@ -70,7 +78,7 @@ __inline__ static void writeFLOAT64ToBuffer(const FLOAT64 val, void* lpBuffer)
 
 __inline__ static FLOAT64 readFLOAT64ArrayIndexFromBuffer(const void* lpBuffer, INT32 nArrIdx)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	FLOAT64 tmp;
 	
 	memcpy(&tmp, &(((FLOAT64*) lpBuffer)[nArrIdx]), sizeof(FLOAT64));
@@ -83,7 +91,7 @@ __inline__ static FLOAT64 readFLOAT64ArrayIndexFromBuffer(const void* lpBuffer, 
 
 __inline__ static FST_WTYPE readFSTWTYPEFromBuffer(const void* lpBuffer)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	FST_WTYPE tmp;
 	
 	memcpy(&tmp, lpBuffer, sizeof(FST_WTYPE));
@@ -96,7 +104,7 @@ __inline__ static FST_WTYPE readFSTWTYPEFromBuffer(const void* lpBuffer)
 
 __inline__ static FST_STYPE readFSTSTYPEFromBuffer(const void* lpBuffer)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	FST_STYPE tmp;
 	
 	memcpy(&tmp, lpBuffer, sizeof(FST_STYPE));
@@ -109,7 +117,7 @@ __inline__ static FST_STYPE readFSTSTYPEFromBuffer(const void* lpBuffer)
 
 __inline__ static void writeFSTWTYPEToBuffer(const FST_WTYPE data, void* lpBuffer)
 {
-#ifdef ARCHITECURE_ARM
+#ifdef ARCHITECTURE_ARM
 	memcpy((FST_WTYPE*) lpBuffer, &data, sizeof(FST_WTYPE));
 #else
 	*(FST_WTYPE*)lpBuffer = data;
