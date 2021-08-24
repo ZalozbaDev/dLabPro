@@ -109,7 +109,8 @@ ifneq ($(or $(findstring mingw,$(OS)),$(findstring cygwin,$(OS)),$(findstring li
     CFLAGS  += -x c++
   endif
   ifeq ($(or $(findstring mingw,$(OS)),$(findstring cygwin,$(OS))),)
-    CFLAGS  += -ansi
+# disable -ansi for inclusion of webrtc header
+#    CFLAGS  += -ansi
   else ## lin
     LFLAGS  += -static
   endif
