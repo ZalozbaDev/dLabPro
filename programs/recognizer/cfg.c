@@ -130,6 +130,7 @@ const char **optenum_getstr(void *lpDst){
   else if(lpDst==&rCfg.eIn) return recoin_str;
   else if(lpDst==&rCfg.rSearch.eTyp) return recosearchtyp_str;
   else if(lpDst==&rCfg.rRej.eTyp) return recorejtyp_str;
+  else if(lpDst==&rCfg.rVAD.eVadType) return recovadtyp_str;
   else usage("Unknown enum in setoptenum");
   return NULL;
 }
@@ -383,9 +384,9 @@ void pfainit(){
 }
 
 void vadinit(){
-  rCfg.rVAD.nVadType      = VAD_GMM;
+  /* rCfg.rVAD.nVadType      = VAD_GMM; */
   rCfg.rVAD.nSigThr       = 0.001;
-  rCfg.rVAD.nPfaThr       = 10000.;
+  /* rCfg.rVAD.nPfaThr       = 10000.; */
   rCfg.rVAD.nGmmThr       = -log(0.4);
   dlm_vad_initparam(&rCfg.rVAD.lpBas);
   rCfg.rVAD.lpBas.nPre    = 10;

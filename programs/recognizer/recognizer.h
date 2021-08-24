@@ -55,6 +55,7 @@
 #define RECOIN        E(none), E(cmd), E(fea)
 #define RECOSEARCHTYP E(tp), E(as)
 #define RECOREJTYP    E(off), E(phn), E(two)
+#define RECOVADTYP    E(none), E(eng), E(gmm), E(rtc)
 
 #ifdef _CFG_C
 #define E(X)  #X
@@ -62,6 +63,7 @@ const char *recoout_str[] = {RECOOUT,NULL};
 const char *recoin_str[] = {RECOIN,NULL};
 const char *recosearchtyp_str[] = {RECOSEARCHTYP,NULL};
 const char *recorejtyp_str[] = {RECOREJTYP,NULL};
+const char *recovadtyp_str[] = {RECOVADTYP,NULL};
 #undef E
 #endif
 
@@ -69,6 +71,7 @@ extern const char *recoout_str[];
 extern const char *recoin_str[];
 extern const char *recosearchtyp_str[];
 extern const char *recorejtyp_str[];
+extern const char *recovadtyp_str[];
 #define E(X)  O_##X
 enum recoout {RECOOUT};
 #undef E
@@ -80,6 +83,9 @@ enum recosearchtyp {RECOSEARCHTYP};
 #undef E
 #define E(X)  RR_##X
 enum recorejtyp {RECOREJTYP};
+#undef E
+#define E(X)  RV_##X
+enum recovadtyp {RECOVADTYP};
 #undef E
 
 
@@ -115,7 +121,7 @@ struct recovad {
   INT32 nMaxSp;
   INT32 nSigMin;
   struct dlm_vad_param lpBas;
-  enum { VAD_NONE, VAD_ENG, VAD_GMM } nVadType;
+  enum recovadtyp eVadType;
   FLOAT32     nSigThr; /* Signal energy threshold */
   FLOAT32     nPfaThr; /* PFA energy threshold */
   FLOAT32     nGmmThr; /* Gaussian voice threshold (0..1) */
@@ -357,6 +363,8 @@ struct recoopt {
   { "vad.maxsp",       OT_INT,   FALSE, &rCfg.rVAD.nMaxSp       },
   { "vad.sigmin",      OT_INT,   FALSE, &rCfg.rVAD.nSigMin      },
   { "vad.force",       OT_BOOL,  FALSE, &rCfg.bVADForce         },
+  { "vad.type",        OT_ENUM,  TRUE,  &rCfg.rVAD.eVadType     },
+  { "vad.pfathr",      OT_FLOAT, TRUE,  &rCfg.rVAD.nPfaThr      },
   { "noise_reduce",    OT_BOOL,  FALSE, &rCfg.bNoiseRdc         },
   { "noise_reduce.len",OT_INT,   FALSE, &rCfg.nNoiseRdcLen      },
   { "noise_reduce.prc",OT_FLOAT, FALSE, &rCfg.nNoiseRdcPrc      },
