@@ -208,6 +208,7 @@ vad.sigmin = 3267\n\
 vad.nolimit = no\n\
 vad.type = eng\n\
 vad.pfathr = 20000.\n\
+vad.webrtcaggr = 0\n\
 \n\
 # Noise reduction (simple algorithm!)\n\
 noise_reduce = no\n\

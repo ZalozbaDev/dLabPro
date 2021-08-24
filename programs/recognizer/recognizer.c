@@ -933,7 +933,7 @@ INT16 online(struct recosig *lpSig)
 #ifdef __USE_WEBRTC_VAD
 	rtcVadInst = WebRtcVad_Create();
 	if (WebRtcVad_Init(rtcVadInst) != 0) return NOT_EXEC;
-	if (WebRtcVad_set_mode(rtcVadInst, 0) != 0) return NOT_EXEC;
+	if (WebRtcVad_set_mode(rtcVadInst, rCfg.rVAD.nWebRTCAggr) != 0) return NOT_EXEC;
 #endif
     
     /* Init signal fetch buffer */

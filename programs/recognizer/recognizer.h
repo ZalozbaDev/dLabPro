@@ -125,6 +125,7 @@ struct recovad {
   FLOAT32     nSigThr; /* Signal energy threshold */
   FLOAT32     nPfaThr; /* PFA energy threshold */
   FLOAT32     nGmmThr; /* Gaussian voice threshold (0..1) */
+  INT32       nWebRTCAggr; /* Aggressiveness parameter of WebRTC VAD */
 };
 
 struct recofile {
@@ -365,6 +366,7 @@ struct recoopt {
   { "vad.force",       OT_BOOL,  FALSE, &rCfg.bVADForce         },
   { "vad.type",        OT_ENUM,  TRUE,  &rCfg.rVAD.eVadType     },
   { "vad.pfathr",      OT_FLOAT, TRUE,  &rCfg.rVAD.nPfaThr      },
+  { "vad.webrtcaggr",  OT_INT,   TRUE,  &rCfg.rVAD.nWebRTCAggr  },
   { "noise_reduce",    OT_BOOL,  FALSE, &rCfg.bNoiseRdc         },
   { "noise_reduce.len",OT_INT,   FALSE, &rCfg.nNoiseRdcLen      },
   { "noise_reduce.prc",OT_FLOAT, FALSE, &rCfg.nNoiseRdcPrc      },
