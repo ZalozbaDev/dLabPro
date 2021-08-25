@@ -435,6 +435,14 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     if(sLab) routput(O_cmd,0,"lab: %s ",sLab);
     if (nRAcc == 0) {
     	routput(O_cmd,0,"---------------------------------------------- res: %s ",rTmp.rRes.sLastRes);
+    	char reaction_command[256];
+    	char dialog_state[20];
+    	reaction_command[0] = 0;
+    	strcat(reaction_command, "./reaction.sh __REJECTED__ ");
+    	dialog_state[0] = 0;
+    	snprintf(dialog_state, 20, "%i", rTmp.nFstSel);
+    	strcat(reaction_command, dialog_state);
+    	system(reaction_command);
     } else {
     	routput(O_cmd,0,"++++++++++++++++++++++++++++++++++++++++++++++ res: %s ",rTmp.rRes.sLastRes);
     	char reaction_command[256];
