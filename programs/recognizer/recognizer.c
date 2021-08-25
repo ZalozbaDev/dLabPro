@@ -63,6 +63,8 @@ static VadInst* rtcVadInst;
 static BOOL rtcVadResult = FALSE;
 #endif
 
+static BOOL mute_for_reaction = FALSE;
+
 struct log {
   FILE *fdRaw;
   FILE *fdLab1;
@@ -433,6 +435,7 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     snprintf(rTmp.rRes.sLastRes,254,"%s%s%s",nRAcc?"":"(",lpsRRes,nRAcc?"":")");
     routput(O_cmd,1,"");
     if(sLab) routput(O_cmd,0,"lab: %s ",sLab);
+    mute_for_reaction = TRUE;
     if (nRAcc == 0) {
     	routput(O_cmd,0,"---------------------------------------------- res: %s ",rTmp.rRes.sLastRes);
     	char reaction_command[256];
@@ -451,6 +454,7 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     	strcat(reaction_command, rTmp.rRes.sLastRes);
     	system(reaction_command);
     }
+    mute_for_reaction = FALSE;
     if(sLab) routput(O_cmd,0,"cor: %i ",nRCor);
     if(rCfg.rRej.eTyp!=RR_off) routput(O_cmd,0,"acc: %i",nRAcc);
     routput(O_cmd,0,"\n");
@@ -848,7 +852,14 @@ int paCallback( const void *inputBuffer, void *outputBuffer, unsigned long frame
   if(framesPerBuffer!=PABUF_SIZE) rerror("pa_input_size_missmatch (%i)\n",framesPerBuffer);
 
   INT32 nWnxt=PABUF_NXT(lpBuf->nWPos);
-  if(nWnxt==lpBuf->nRPos){ lpBuf->nSkip++; return 0; }
+  
+  // discard data if ringbuffer full or mute requested
+  if ((nWnxt==lpBuf->nRPos) || (mute_for_reaction == TRUE))
+  { 
+  	// fprintf(stderr, "%s\t", (mute_for_reaction == TRUE) ? "MMM" : "FFF");
+    lpBuf->nSkip++; 
+    return 0; 
+  }
 
   for(i=0;i<PABUF_SIZE;i++){
     FLOAT32 v=((FLOAT32*)inputBuffer)[i]*lpBuf->nVol;
