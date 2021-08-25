@@ -237,6 +237,7 @@ struct recocfg {
   FLOAT32           nNoiseRdcPrc;
   BOOL              bMeasureTime;
   INT32             nAudioDev;
+  char              sAudioDevName[STR_LEN];
   BOOL              bAudioDevList;
   BOOL              bBinData;
   BOOL              bSkipNld;
@@ -375,6 +376,7 @@ struct recoopt {
   { "sig.sel_channel", OT_INT,   FALSE, &rCfg.nSigChannel       },
   { "audio.dev",       OT_INT,   FALSE, &rCfg.nAudioDev         },
   { "d",               OT_INT,   FALSE, &rCfg.nAudioDev         },
+  { "audio.name",      OT_STR,   TRUE,  &rCfg.sAudioDevName     },
   { "audio.dev_list",  OT_BOOL,  FALSE, &rCfg.bAudioDevList     },
   { "l",               OT_TRUE,  FALSE, &rCfg.bAudioDevList     },
   { "data.bin",        OT_LOAD,  FALSE, (void*)CL_BIN           },

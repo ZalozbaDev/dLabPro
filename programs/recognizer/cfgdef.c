@@ -228,6 +228,9 @@ measure_time = yes\n\
 audio.dev = -1\n\
 # Shortcut: -d X\n\
 \n\
+# Define portaudio device by name, if number == -1.\n\
+audio.name = \n\
+\n\
 # List all audio devices of portaudio and exit.\n\
 audio.dev_list = no\n\
 # Shortcut: -l \n\

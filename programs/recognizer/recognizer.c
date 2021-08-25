@@ -856,22 +856,39 @@ int paCallback( const void *inputBuffer, void *outputBuffer, unsigned long frame
 }
 #endif
 
+static int internal_audio_devlist(const char* devNameToFind)
+{
+  INT32 i;
+  INT32 retval = -1;
+  printf("Devices: %i\n",Pa_GetDeviceCount());
+  for(i = 0; i < Pa_GetDeviceCount(); i++)
+  {
+    const PaDeviceInfo* deviceInfo=Pa_GetDeviceInfo(i);
+    if(deviceInfo->maxInputChannels>0)
+      printf("Device %2i: In-Ch: %3i (In-Time: %8.4f->%8.4f) Out-Ch: %3i (Out-Time: %8.4f->%8.4f) SampRate: %g Name: %s\n",i,
+        deviceInfo->maxInputChannels,deviceInfo->defaultLowInputLatency,deviceInfo->defaultHighInputLatency,
+        deviceInfo->maxOutputChannels,deviceInfo->defaultLowOutputLatency,deviceInfo->defaultHighOutputLatency,
+        deviceInfo->defaultSampleRate,deviceInfo->name);
+    if (devNameToFind != NULL)
+    {
+    	if (strncasecmp(devNameToFind, deviceInfo->name,strnlen(devNameToFind, STR_LEN)) == 0)
+    	{
+    		printf("Found requested device %s!\n", 	devNameToFind);
+    		retval = i;
+    	}
+    }
+  }
+
+  return retval;
+}
+
 void audio_devlist()
 {
 #ifndef __USE_PORTAUDIO
   rerror("enable __USE_PORTAUDIO for online recognition\n");
 #else
-  INT32 i;
   if(Pa_Initialize()!=paNoError) return;
-  printf("Devices: %i\n",Pa_GetDeviceCount());
-  for(i=0;i<Pa_GetDeviceCount();i++){
-    const PaDeviceInfo* deviceInfo=Pa_GetDeviceInfo(i);
-     if(deviceInfo->maxInputChannels>0)
-       printf("Device %2i: In-Ch: %3i (In-Time: %8.4f->%8.4f) Out-Ch: %3i (Out-Time: %8.4f->%8.4f) SampRate: %g Name: %s\n",i,
-        deviceInfo->maxInputChannels,deviceInfo->defaultLowInputLatency,deviceInfo->defaultHighInputLatency,
-        deviceInfo->maxOutputChannels,deviceInfo->defaultLowOutputLatency,deviceInfo->defaultHighOutputLatency,
-        deviceInfo->defaultSampleRate,deviceInfo->name);
-  }
+  (void) internal_audio_devlist(NULL);
   if(Pa_Terminate()!=paNoError) return;
 #endif
 }
@@ -948,13 +965,20 @@ INT16 online(struct recosig *lpSig)
     lpBuf.nVol=1.;
 
     /* Init portaudio device */
-    if(rCfg.nAudioDev<0){
+    if ((rCfg.nAudioDev < 0) && (rCfg.sAudioDevName[0] == 0)) {
       if(Pa_OpenDefaultStream(&stream,1,0,paFloat32,rCfg.rPfa.nSrate,nCrate,paCallback,&lpBuf)!=paNoError) return NOT_EXEC;
     }else{
       PaStreamParameters paIn;
       memset(&paIn,0,sizeof(PaStreamParameters));
       paIn.channelCount=1;
-      paIn.device=rCfg.nAudioDev;
+      if (rCfg.nAudioDev < 0) 
+      {
+      	  paIn.device = internal_audio_devlist(rCfg.sAudioDevName); 
+      }
+      else
+      {
+      	  paIn.device = rCfg.nAudioDev;
+      }
       paIn.sampleFormat=paFloat32;
       if(Pa_OpenStream(&stream,&paIn,NULL,rCfg.rPfa.nSrate,nCrate,paNoFlag,paCallback,&lpBuf)) return NOT_EXEC;
     }
