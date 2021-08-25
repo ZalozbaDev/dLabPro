@@ -56,6 +56,7 @@
 
 INT64 nFrame = 0;         /* Global frame number */
 INT64 nLastActive = 0;    /* Frame number of most recent activity */
+INT64 nFrameDiffSeconds = 0; /* Last frame diff in seconds for counting down until dialog state fallback */
 
 // dirty result passing via file-global variable
 #ifdef __USE_WEBRTC_VAD
@@ -954,7 +955,7 @@ INT16 online(struct recosig *lpSig)
   INT32        nColSigBufPos=0;
 /*  THREADHANDLE lpCmdThread;*/
 
-  nFrame=nLastActive=0;
+  nFrame=nLastActive=nFrameDiffSeconds=0;
 
   if(!lpSig){ /* ----- online ----- */
 
@@ -1037,18 +1038,42 @@ INT16 online(struct recosig *lpSig)
     (
       nLastActive &&
       nVadSfa<=0 &&
-      rCfg.nFstSleep &&
-      nFrame-nLastActive>rCfg.nFstSleep*rCfg.rPfa.nSrate/nCrate
+      rCfg.nFstSleep
     )
     {
-      dlg_upd("__SLEEP__");
-      nLastActive=0;
-      char reaction_command[256];
-      reaction_command[0] = 0;
-      strcat(reaction_command, "./reaction.sh __SLEEP__");
-      system(reaction_command);
+      if ((nFrame - nLastActive) > (rCfg.nFstSleep * rCfg.rPfa.nSrate / nCrate))
+      {
+		  dlg_upd("__SLEEP__");
+		  nLastActive=0;
+		  nFrameDiffSeconds = 0;
+		  char reaction_command[256];
+		  reaction_command[0] = 0;
+		  strcat(reaction_command, "./reaction.sh __SLEEP__");
+		  system(reaction_command);
+	  }
+	  else if (nFrame > nLastActive)
+	  {
+	  	  INT64 frameDiff = nFrame - nLastActive;
+	  	  INT64 frameDiffSeconds = frameDiff / (rCfg.rPfa.nSrate / nCrate);
+	  	  if (frameDiffSeconds != nFrameDiffSeconds)
+	  	  {
+	  	  	  nFrameDiffSeconds = frameDiffSeconds;
+	  	  	  // only count down from active state(s), not the sleep state
+	  	  	  if (rTmp.nFstSel != 0)
+	  	  	  {
+				  char reaction_command[256];
+				  reaction_command[0] = 0;
+				  strcat(reaction_command, "./reaction.sh __COUNTDOWN__ ");
+				  char number[20];
+				  number[0] = 0;
+				  snprintf(number, 20, "%d", frameDiffSeconds);
+				  strcat(reaction_command, number);
+				  system(reaction_command);
+			  }
+		  }
+	  }
     }
-
+    
     /* Check for new signal fetched */
 #ifdef __USE_PORTAUDIO
     if(lpSig || lpBuf.nWPos!=lpBuf.nRPos)
