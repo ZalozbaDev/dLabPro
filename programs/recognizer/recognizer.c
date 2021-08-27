@@ -313,7 +313,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   {
     INT32 ibo;
     FLOAT32 *tcnf;
-  } *lvl = NULL, *li = NULL;
+  } *p_lvl_outer = NULL, *p_lvl_inner = NULL;
 
   if (b_is_fvr_calc) CData_AddComp(result_trans_tab, "~CNF", T_FLOAT);
   
@@ -341,7 +341,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   frm = fi = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*frm));
   fi[0].n = fi[0].neq = 0;
   fi[0].rw = fi[0].fw = 0.;
-  if(b_is_fvr_calc) lvl = li = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*lvl));
+  if(b_is_fvr_calc) p_lvl_outer = p_lvl_inner = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*p_lvl_outer));
 
   // init thresholds
   thre_acou_dist = rCfg.rRej.nTAD;
@@ -359,27 +359,30 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
       {
         if (loop_result_off == s_bracket_open)
         {
-          li++;
-          li->ibo=fi-frm;
-          li->tcnf=NULL;
+          p_lvl_inner++;
+          p_lvl_inner->ibo  = fi - frm;
+          p_lvl_inner->tcnf = NULL;
         }
-        else if(loop_result_off==s_bracket_close)
+        else if(loop_result_off == s_bracket_close)
         {
-          if(li>lvl)
+          if (p_lvl_inner > p_lvl_outer)
           {
-            INT32   n  =fi->n  -frm[li->ibo].n;
-            INT32   neq=fi->neq-frm[li->ibo].neq;
-            FLOAT32 rw =fi->rw -frm[li->ibo].rw;
-            FLOAT32 fw =fi->fw -frm[li->ibo].fw;
-            norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? rw ? ABS(rw-fw) / ABS(rw) : thre_acou_dist : 0.f;
-            norm_edit_dist = n ? 1.f - neq/(FLOAT32)n : thre_edit_dist;
-            if(li->tcnf) *li->tcnf=thre_fvr_lambda*MAX(1.f-norm_edit_dist/thre_edit_dist,-1.f)+(1.f-thre_fvr_lambda)*MAX(1.f-norm_acou_dist/thre_acou_dist,-1.f);
+            INT32   n   = fi->n  - frm[p_lvl_inner->ibo].n;
+            INT32   neq = fi->neq- frm[p_lvl_inner->ibo].neq;
+            FLOAT32 rw  = fi->rw - frm[p_lvl_inner->ibo].rw;
+            FLOAT32 fw  = fi->fw - frm[p_lvl_inner->ibo].fw;
+            
+            norm_acou_dist = off_result_lsr >= 0 && off_refren_lsr >= 0 ? rw ? ABS(rw-fw) / ABS(rw) : thre_acou_dist : 0.f;
+            norm_edit_dist = n ? 1.f - neq / (FLOAT32) n : thre_edit_dist;
+            
+            if (p_lvl_inner->tcnf) *p_lvl_inner->tcnf = thre_fvr_lambda * MAX(1.f - norm_edit_dist / thre_edit_dist, -1.f) + (1.f - thre_fvr_lambda) * MAX(1.f - norm_acou_dist / thre_acou_dist, -1.f);
             else rerror("FVR confidence: no output symbol at certained bracket level");
-            li--;
+            
+            p_lvl_inner--;
           }
           else rerror("FVR confidence: too many closing brackets ']'");
         }
-        else if(!li->tcnf) li->tcnf=(FLOAT32*)(p_result_trans + off_result_cnf);
+        else if(!p_lvl_inner->tcnf) p_lvl_inner->tcnf = (FLOAT32*)(p_result_trans + off_result_cnf);
       }
       
       if ((loop_result_ptr = *(FST_STYPE*)(p_result_trans + off_result_phn)) >= 0) break;
@@ -397,7 +400,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
     fi++;
   }
   
-  if(b_is_fvr_calc && (li != lvl)) rerror("FVR confidence: too less closing brackets ']'");
+  if(b_is_fvr_calc && (p_lvl_inner != p_lvl_outer)) rerror("FVR confidence: too less closing brackets ']'");
 
   thre_edit_dist = rCfg.rRej.nTED;
 
@@ -414,7 +417,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   	  thre_edit_dist);
 
   dlp_free(frm);
-  if(b_is_fvr_calc) dlp_free(lvl);
+  if(b_is_fvr_calc) dlp_free(p_lvl_outer);
 
   return ((norm_acou_dist < thre_acou_dist) && (norm_edit_dist < thre_edit_dist)) ? TRUE : FALSE;
 }
