@@ -296,12 +296,12 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
   CData *result_trans_tab = AS(CData,itDC->td);                         /* Result transition table */
   CData *refren_trans_tab = AS(CData,itDCr->td);                        /* Reference transition table */
   INT32 result_reclen, refren_reclen;                                   /* Transistions record length in result / reference */
-  BYTE  *p_result_trans,*p_refren_trans;                                /* Transistions pointer in result / reference */
-  BYTE  *ret,*fet;                                      /* Pointer after last transition in result / reference */
-  INT32 orp,ofp;                                        /* Offset of ~PHN component in result / reference */
-  INT32 orw,ofw;                                        /* Offset of ~LSR component in result / reference */
-  INT32 oro;                                            /* Offset of ~TOS component in result */
-  INT32 orc;                                            /* Offset of ~CNF component in result */
+  BYTE  *p_result_trans, *p_refren_trans;                               /* Transistions pointer in result / reference */
+  BYTE  *p_result_last, *p_refren_last;                                 /* Pointer after last transition in result / reference */
+  INT32 off_result_phn, off_refren_phn;                                 /* Offset of ~PHN component in result / reference */
+  INT32 off_result_lsr, off_refren_lsr;                                 /* Offset of ~LSR component in result / reference */
+  INT32 off_result_tos;                                                 /* Offset of ~TOS component in result */
+  INT32 off_result_cnf;                                                 /* Offset of ~CNF component in result */
   FLOAT32 nad,ned;                                      /* Normalized acoustic and edit distant */
   FLOAT32 tad,ted,lam;                                  /* Threshold for acoustic and edit distant */
   struct {
@@ -318,16 +318,16 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
   p_refren_trans =CData_XAddr(refren_trans_tab,0,0);
   result_reclen =CData_GetRecLen(result_trans_tab);
   refren_reclen =CData_GetRecLen(refren_trans_tab);
-  ret=p_result_trans+result_reclen*CData_GetNRecs(result_trans_tab);
-  fet=p_refren_trans+refren_reclen*CData_GetNRecs(refren_trans_tab);
-  orp=data_findcompoffset(result_trans_tab,"~PHN");
-  ofp=data_findcompoffset(refren_trans_tab,"~PHN");
-  if(orp<0 || ofp<0) return 0;
-  orw=data_findcompoffset(result_trans_tab,"~LSR");
-  ofw=data_findcompoffset(refren_trans_tab,"~LSR");
-  oro=data_findcompoffset(result_trans_tab,"~TOS");
-  orc=data_findcompoffset(result_trans_tab,"~CNF");
-  if(oro<0 || orc<0) b_is_fvr_calc=FALSE;
+  p_result_last=p_result_trans+result_reclen*CData_GetNRecs(result_trans_tab);
+  p_refren_last=p_refren_trans+refren_reclen*CData_GetNRecs(refren_trans_tab);
+  off_result_phn=data_findcompoffset(result_trans_tab,"~PHN");
+  off_refren_phn=data_findcompoffset(refren_trans_tab,"~PHN");
+  if(off_result_phn<0 || off_refren_phn<0) return 0;
+  off_result_lsr=data_findcompoffset(result_trans_tab,"~LSR");
+  off_refren_lsr=data_findcompoffset(refren_trans_tab,"~LSR");
+  off_result_tos=data_findcompoffset(result_trans_tab,"~TOS");
+  off_result_cnf=data_findcompoffset(result_trans_tab,"~CNF");
+  if(off_result_tos<0 || off_result_cnf<0) b_is_fvr_calc=FALSE;
   frm=fi=dlp_malloc((MAX(CData_GetNRecs(result_trans_tab),CData_GetNRecs(refren_trans_tab))+1)*sizeof(*frm));
   fi[0].n=fi[0].neq=0;
   fi[0].rw=fi[0].fw=0.;
@@ -340,8 +340,8 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
 
   for(;; p_result_trans+=result_reclen,p_refren_trans+=refren_reclen){
     INT32 rp=-1,fp=-1, ro;
-    for( ; p_result_trans<ret ; p_result_trans+=result_reclen){
-      if(b_is_fvr_calc && (ro=*(FST_STYPE*)(p_result_trans+oro))>=0){
+    for( ; p_result_trans<p_result_last ; p_result_trans+=result_reclen){
+      if(b_is_fvr_calc && (ro=*(FST_STYPE*)(p_result_trans+off_result_tos))>=0){
         if(ro==s_bracket_open){
           li++;
           li->ibo=fi-frm;
@@ -352,24 +352,24 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
             INT32   neq=fi->neq-frm[li->ibo].neq;
             FLOAT32 rw =fi->rw -frm[li->ibo].rw;
             FLOAT32 fw =fi->fw -frm[li->ibo].fw;
-            nad = orw>=0 && ofw>=0 ? rw ? ABS(rw-fw) / ABS(rw) : tad : 0.f;
+            nad = off_result_lsr>=0 && off_refren_lsr>=0 ? rw ? ABS(rw-fw) / ABS(rw) : tad : 0.f;
             ned = n ? 1.f - neq/(FLOAT32)n : ted;
             if(li->tcnf) *li->tcnf=lam*MAX(1.f-ned/ted,-1.f)+(1.f-lam)*MAX(1.f-nad/tad,-1.f);
             else rerror("FVR confidence: no output symbol at certained bracket level");
             li--;
           }else rerror("FVR confidence: too many closing brackets ']'");
-        }else if(!li->tcnf) li->tcnf=(FLOAT32*)(p_result_trans+orc);
+        }else if(!li->tcnf) li->tcnf=(FLOAT32*)(p_result_trans+off_result_cnf);
       }
-      if((rp=*(FST_STYPE*)(p_result_trans+orp))>=0) break;
+      if((rp=*(FST_STYPE*)(p_result_trans+off_result_phn))>=0) break;
     }
-    while(p_refren_trans<fet && (fp=*(FST_STYPE*)(p_refren_trans+ofp))<0) p_refren_trans+=refren_reclen;
-    if(p_result_trans>=ret || p_refren_trans>=fet) break;
+    while(p_refren_trans<p_refren_last && (fp=*(FST_STYPE*)(p_refren_trans+off_refren_phn))<0) p_refren_trans+=refren_reclen;
+    if(p_result_trans>=p_result_last || p_refren_trans>=p_refren_last) break;
     if(rp==s_silence_symbol || rp==s_garbage_symbol || fp==s_silence_symbol || fp==s_garbage_symbol) continue;
     fi[1].n=fi[0].n+1;
     fi[1].neq=fi[0].neq+(rp==fp);
-    if(orw>=0 && ofw>=0){
-      fi[1].rw=fi[0].rw+*(FST_WTYPE*)(p_result_trans+orw);
-      fi[1].fw=fi[0].fw+*(FST_WTYPE*)(p_refren_trans+ofw);
+    if(off_result_lsr>=0 && off_refren_lsr>=0){
+      fi[1].rw=fi[0].rw+*(FST_WTYPE*)(p_result_trans+off_result_lsr);
+      fi[1].fw=fi[0].fw+*(FST_WTYPE*)(p_refren_trans+off_refren_lsr);
     }
     fi++;
   }
@@ -377,7 +377,7 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
 
   ted=rCfg.rRej.nTED;
 
-  nad = orw>=0 && ofw>=0 ? fi[0].rw ? ABS(fi[0].rw-fi[0].fw) / ABS(fi[0].rw) : tad : 0.f;
+  nad = off_result_lsr>=0 && off_refren_lsr>=0 ? fi[0].rw ? ABS(fi[0].rw-fi[0].fw) / ABS(fi[0].rw) : tad : 0.f;
   ned = fi[0].n ? 1.f-fi[0].neq / (FLOAT32)fi[0].n : ted;
   routput(O_dbg, 1, "rec | nad: %s %.4g %s tnad: %.4g | ned: %s%.4g%s tned: %.4g | \n", 
   	  (nad < tad) ? "" : "!!!!",
