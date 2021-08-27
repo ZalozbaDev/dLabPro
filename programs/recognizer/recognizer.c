@@ -289,8 +289,8 @@ INT32 data_findcompoffset(CData *idX,const char *lpsName){
 
 static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
 {
-  INT32 s_silence_symbol = data_findsymbol(AS(CData, itDCRefren->os), "#");   /* Silence symbol index */
-  INT32 s_garbage_symbol = data_findsymbol(AS(CData, itDCRefren->os), ".");   /* Garbage symbol index */
+  const INT32 s_silence_symbol = data_findsymbol(AS(CData, itDCRefren->os), "#");   /* Silence symbol index */
+  const INT32 s_garbage_symbol = data_findsymbol(AS(CData, itDCRefren->os), ".");   /* Garbage symbol index */
   INT32 s_bracket_open=-1, s_bracket_close=-1;                                /* Bracket symbol indices */
   BOOL b_is_fvr_calc = isfvr(itDCResult, &s_bracket_open, &s_bracket_close);  /* FVR confidence calculation? */
   CData *result_trans_tab = AS(CData, itDCResult->td);                        /* Result transition table */
@@ -304,11 +304,13 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   INT32 off_result_cnf;                                                       /* Offset of ~CNF component in result */
   FLOAT32 norm_acou_dist, norm_edit_dist;                                     /* Normalized acoustic and edit distant */
   FLOAT32 thre_acou_dist, thre_edit_dist, thre_fvr_lambda;                    /* Threshold for acoustic and edit distant */
+  
   struct 
-  {
+  { 
     INT32 n,neq;
     FLOAT32 rw,fw;
-  } *frm, *fi;
+  } *p_f_start, *p_f_index;
+  
   struct 
   {
     INT32 ibo;
@@ -318,8 +320,8 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   if (b_is_fvr_calc) CData_AddComp(result_trans_tab, "~CNF", T_FLOAT);
   
   // pointers and lengths to transition tables
-  p_result_trans = CData_XAddr(result_trans_tab,0,0);
-  p_refren_trans = CData_XAddr(refren_trans_tab,0,0);
+  p_result_trans = CData_XAddr(result_trans_tab, 0, 0);
+  p_refren_trans = CData_XAddr(refren_trans_tab, 0, 0);
   result_reclen = CData_GetRecLen(result_trans_tab);
   refren_reclen = CData_GetRecLen(refren_trans_tab);
   p_result_last = p_result_trans + result_reclen * CData_GetNRecs(result_trans_tab);
@@ -337,10 +339,11 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   off_result_cnf=data_findcompoffset(result_trans_tab,"~CNF");
   if ((off_result_tos < 0) || (off_result_cnf < 0)) b_is_fvr_calc=FALSE;
   
-  // allocate result computation arrays
-  frm = fi = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*frm));
-  fi[0].n = fi[0].neq = 0;
-  fi[0].rw = fi[0].fw = 0.;
+  // allocate result computation arrays and zero-out initial values
+  p_f_start = p_f_index = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*p_f_start));
+  p_f_index[0].n = p_f_index[0].neq = 0;
+  p_f_index[0].rw = p_f_index[0].fw = 0.;
+  
   if(b_is_fvr_calc) p_lvl_outer = p_lvl_inner = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*p_lvl_outer));
 
   // init thresholds
@@ -355,26 +358,31 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
     
     for ( ; p_result_trans < p_result_last ; p_result_trans += result_reclen)
     {
+      // do FVR stuff
       if (b_is_fvr_calc && ((loop_result_off = *(FST_STYPE*)(p_result_trans + off_result_tos)) >= 0))
       {
         if (loop_result_off == s_bracket_open)
         {
+          // open bracket, initialize values
           p_lvl_inner++;
-          p_lvl_inner->ibo  = fi - frm;
+          p_lvl_inner->ibo  = p_f_index - p_f_start;
           p_lvl_inner->tcnf = NULL;
         }
         else if(loop_result_off == s_bracket_close)
         {
           if (p_lvl_inner > p_lvl_outer)
           {
-            INT32   n   = fi->n  - frm[p_lvl_inner->ibo].n;
-            INT32   neq = fi->neq- frm[p_lvl_inner->ibo].neq;
-            FLOAT32 rw  = fi->rw - frm[p_lvl_inner->ibo].rw;
-            FLOAT32 fw  = fi->fw - frm[p_lvl_inner->ibo].fw;
+          	// closing bracket, do computation
+            INT32   n   = p_f_index->n  - p_f_start[p_lvl_inner->ibo].n;
+            INT32   neq = p_f_index->neq- p_f_start[p_lvl_inner->ibo].neq;
+            FLOAT32 rw  = p_f_index->rw - p_f_start[p_lvl_inner->ibo].rw;
+            FLOAT32 fw  = p_f_index->fw - p_f_start[p_lvl_inner->ibo].fw;
             
+            // compute distances "in this hierarchy"?
             norm_acou_dist = off_result_lsr >= 0 && off_refren_lsr >= 0 ? rw ? ABS(rw-fw) / ABS(rw) : thre_acou_dist : 0.f;
             norm_edit_dist = n ? 1.f - neq / (FLOAT32) n : thre_edit_dist;
             
+            // save overall "confidence in this hierarchy"? inside the "CNF" component of the result
             if (p_lvl_inner->tcnf) *p_lvl_inner->tcnf = thre_fvr_lambda * MAX(1.f - norm_edit_dist / thre_edit_dist, -1.f) + (1.f - thre_fvr_lambda) * MAX(1.f - norm_acou_dist / thre_acou_dist, -1.f);
             else rerror("FVR confidence: no output symbol at certained bracket level");
             
@@ -382,30 +390,38 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
           }
           else rerror("FVR confidence: too many closing brackets ']'");
         }
-        else if(!p_lvl_inner->tcnf) p_lvl_inner->tcnf = (FLOAT32*)(p_result_trans + off_result_cnf);
+        else if(!p_lvl_inner->tcnf) p_lvl_inner->tcnf = (FLOAT32*)(p_result_trans + off_result_cnf); // neither, so init ptr to confidence
       }
       
+      // break out inner for-loop as soon as something reasonable with the phoneme component happens
       if ((loop_result_ptr = *(FST_STYPE*)(p_result_trans + off_result_phn)) >= 0) break;
     }
     
-    while(p_refren_trans<p_refren_last && (loop_refren_ptr=*(FST_STYPE*)(p_refren_trans+off_refren_phn))<0) p_refren_trans+=refren_reclen;
-    if(p_result_trans>=p_result_last || p_refren_trans>=p_refren_last) break;
-    if(loop_result_ptr==s_silence_symbol || loop_result_ptr==s_garbage_symbol || loop_refren_ptr==s_silence_symbol || loop_refren_ptr==s_garbage_symbol) continue;
-    fi[1].n=fi[0].n+1;
-    fi[1].neq=fi[0].neq+(loop_result_ptr==loop_refren_ptr);
+    // somehow advance the reference pointer in the same way as the result pointer, e.g. stop when sth with the phoneme component happens
+    while ((p_refren_trans < p_refren_last) && (loop_refren_ptr = *(FST_STYPE*)(p_refren_trans + off_refren_phn)) < 0) p_refren_trans += refren_reclen;
+    
+    // end outer loop if any of the 2 pointers have advanced outside the table
+    if ((p_result_trans >= p_result_last) || (p_refren_trans >= p_refren_last)) break;
+    
+    // skip computations vs "silence" and "garbage" symbol
+    if ((loop_result_ptr == s_silence_symbol) || (loop_result_ptr == s_garbage_symbol) 
+    	|| (loop_refren_ptr == s_silence_symbol) || (loop_refren_ptr == s_garbage_symbol)) continue;
+    
+    p_f_index[1].n=p_f_index[0].n+1;
+    p_f_index[1].neq=p_f_index[0].neq+(loop_result_ptr==loop_refren_ptr);
     if(off_result_lsr>=0 && off_refren_lsr>=0){
-      fi[1].rw=fi[0].rw+*(FST_WTYPE*)(p_result_trans+off_result_lsr);
-      fi[1].fw=fi[0].fw+*(FST_WTYPE*)(p_refren_trans+off_refren_lsr);
+      p_f_index[1].rw=p_f_index[0].rw+*(FST_WTYPE*)(p_result_trans+off_result_lsr);
+      p_f_index[1].fw=p_f_index[0].fw+*(FST_WTYPE*)(p_refren_trans+off_refren_lsr);
     }
-    fi++;
+    p_f_index++;
   }
   
   if(b_is_fvr_calc && (p_lvl_inner != p_lvl_outer)) rerror("FVR confidence: too less closing brackets ']'");
 
   thre_edit_dist = rCfg.rRej.nTED;
 
-  norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? fi[0].rw ? ABS(fi[0].rw-fi[0].fw) / ABS(fi[0].rw) : thre_acou_dist : 0.f;
-  norm_edit_dist = fi[0].n ? 1.f-fi[0].neq / (FLOAT32)fi[0].n : thre_edit_dist;
+  norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? p_f_index[0].rw ? ABS(p_f_index[0].rw-p_f_index[0].fw) / ABS(p_f_index[0].rw) : thre_acou_dist : 0.f;
+  norm_edit_dist = p_f_index[0].n ? 1.f-p_f_index[0].neq / (FLOAT32)p_f_index[0].n : thre_edit_dist;
   routput(O_dbg, 1, "rec | nad: %s %.4g %s tnad: %.4g | ned: %s%.4g%s tned: %.4g | \n", 
   	  (norm_acou_dist < thre_acou_dist) ? "" : "!!!!",
   	  norm_acou_dist, 
@@ -416,7 +432,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   	  (norm_edit_dist < thre_edit_dist) ? "" : "!!!!",
   	  thre_edit_dist);
 
-  dlp_free(frm);
+  dlp_free(p_f_start);
   if(b_is_fvr_calc) dlp_free(p_lvl_outer);
 
   return ((norm_acou_dist < thre_acou_dist) && (norm_edit_dist < thre_edit_dist)) ? TRUE : FALSE;
