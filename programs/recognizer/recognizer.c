@@ -409,10 +409,11 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
     
     p_f_index[1].position  = p_f_index[0].position + 1;
     p_f_index[1].not_equal = p_f_index[0].not_equal + (loop_result_ptr == loop_refren_ptr);
-    if(off_result_lsr>=0 && off_refren_lsr>=0)
+    
+    if((off_result_lsr >= 0) && (off_refren_lsr >=0))
     {
-      p_f_index[1].rw=p_f_index[0].rw+*(FST_WTYPE*)(p_result_trans+off_result_lsr);
-      p_f_index[1].fw=p_f_index[0].fw+*(FST_WTYPE*)(p_refren_trans+off_refren_lsr);
+      p_f_index[1].rw = p_f_index[0].rw + *(FST_WTYPE*)(p_result_trans + off_result_lsr);
+      p_f_index[1].fw = p_f_index[0].fw + *(FST_WTYPE*)(p_refren_trans + off_refren_lsr);
     }
     p_f_index++;
   }
@@ -421,8 +422,8 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
 
   thre_edit_dist = rCfg.rRej.nTED;
 
-  norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? p_f_index[0].rw ? ABS(p_f_index[0].rw-p_f_index[0].fw) / ABS(p_f_index[0].rw) : thre_acou_dist : 0.f;
-  norm_edit_dist = p_f_index[0].position ? 1.f - p_f_index[0].not_equal / (FLOAT32)p_f_index[0].position : thre_edit_dist;
+  norm_acou_dist = ((off_result_lsr >= 0) && (off_refren_lsr >= 0)) ? p_f_index[0].rw ? ABS(p_f_index[0].rw - p_f_index[0].fw) / ABS(p_f_index[0].rw) : thre_acou_dist : 0.f;
+  norm_edit_dist = p_f_index[0].position ? 1.f - p_f_index[0].not_equal / (FLOAT32) p_f_index[0].position : thre_edit_dist;
   routput(O_dbg, 1, "rec | nad: %s %.4g %s tnad: %.4g | ned: %s%.4g%s tned: %.4g | \n", 
   	  (norm_acou_dist < thre_acou_dist) ? "" : "!!!!",
   	  norm_acou_dist, 
