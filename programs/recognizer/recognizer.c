@@ -302,8 +302,8 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
   INT32 off_result_lsr, off_refren_lsr;                                 /* Offset of ~LSR component in result / reference */
   INT32 off_result_tos;                                                 /* Offset of ~TOS component in result */
   INT32 off_result_cnf;                                                 /* Offset of ~CNF component in result */
-  FLOAT32 nad,ned;                                      /* Normalized acoustic and edit distant */
-  FLOAT32 tad,ted,lam;                                  /* Threshold for acoustic and edit distant */
+  FLOAT32 norm_acou_dist, norm_edit_dist;                               /* Normalized acoustic and edit distant */
+  FLOAT32 thre_acou_dist, thre_edit_dist, thre_fvr_lambda;              /* Threshold for acoustic and edit distant */
   struct {
     INT32 n,neq;
     FLOAT32 rw,fw;
@@ -333,10 +333,10 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
   fi[0].rw=fi[0].fw=0.;
   if(b_is_fvr_calc) lvl=li=dlp_malloc((MAX(CData_GetNRecs(result_trans_tab),CData_GetNRecs(refren_trans_tab))+1)*sizeof(*lvl));
 
-  tad=rCfg.rRej.nTAD;
-  if(rCfg.rSearch.eTyp==RS_as) tad = rCfg.rRej.nASTAD;
-  ted=rCfg.rRej.nFVRTED;
-  lam=rCfg.rRej.nFVRLAM;
+  thre_acou_dist=rCfg.rRej.nTAD;
+  if(rCfg.rSearch.eTyp==RS_as) thre_acou_dist = rCfg.rRej.nASTAD;
+  thre_edit_dist=rCfg.rRej.nFVRTED;
+  thre_fvr_lambda=rCfg.rRej.nFVRLAM;
 
   for(;; p_result_trans+=result_reclen,p_refren_trans+=refren_reclen){
     INT32 rp=-1,fp=-1, ro;
@@ -352,9 +352,9 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
             INT32   neq=fi->neq-frm[li->ibo].neq;
             FLOAT32 rw =fi->rw -frm[li->ibo].rw;
             FLOAT32 fw =fi->fw -frm[li->ibo].fw;
-            nad = off_result_lsr>=0 && off_refren_lsr>=0 ? rw ? ABS(rw-fw) / ABS(rw) : tad : 0.f;
-            ned = n ? 1.f - neq/(FLOAT32)n : ted;
-            if(li->tcnf) *li->tcnf=lam*MAX(1.f-ned/ted,-1.f)+(1.f-lam)*MAX(1.f-nad/tad,-1.f);
+            norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? rw ? ABS(rw-fw) / ABS(rw) : thre_acou_dist : 0.f;
+            norm_edit_dist = n ? 1.f - neq/(FLOAT32)n : thre_edit_dist;
+            if(li->tcnf) *li->tcnf=thre_fvr_lambda*MAX(1.f-norm_edit_dist/thre_edit_dist,-1.f)+(1.f-thre_fvr_lambda)*MAX(1.f-norm_acou_dist/thre_acou_dist,-1.f);
             else rerror("FVR confidence: no output symbol at certained bracket level");
             li--;
           }else rerror("FVR confidence: too many closing brackets ']'");
@@ -375,24 +375,24 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
   }
   if(b_is_fvr_calc && li!=lvl) rerror("FVR confidence: too less closing brackets ']'");
 
-  ted=rCfg.rRej.nTED;
+  thre_edit_dist=rCfg.rRej.nTED;
 
-  nad = off_result_lsr>=0 && off_refren_lsr>=0 ? fi[0].rw ? ABS(fi[0].rw-fi[0].fw) / ABS(fi[0].rw) : tad : 0.f;
-  ned = fi[0].n ? 1.f-fi[0].neq / (FLOAT32)fi[0].n : ted;
+  norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? fi[0].rw ? ABS(fi[0].rw-fi[0].fw) / ABS(fi[0].rw) : thre_acou_dist : 0.f;
+  norm_edit_dist = fi[0].n ? 1.f-fi[0].neq / (FLOAT32)fi[0].n : thre_edit_dist;
   routput(O_dbg, 1, "rec | nad: %s %.4g %s tnad: %.4g | ned: %s%.4g%s tned: %.4g | \n", 
-  	  (nad < tad) ? "" : "!!!!",
-  	  nad, 
-  	  (nad < tad) ? "" : "!!!!",
-  	  tad, 
-  	  (ned < ted) ? "" : "!!!!",
-  	  ned, 
-  	  (ned < ted) ? "" : "!!!!",
-  	  ted);
+  	  (norm_acou_dist < thre_acou_dist) ? "" : "!!!!",
+  	  norm_acou_dist, 
+  	  (norm_acou_dist < thre_acou_dist) ? "" : "!!!!",
+  	  thre_acou_dist, 
+  	  (norm_edit_dist < thre_edit_dist) ? "" : "!!!!",
+  	  norm_edit_dist, 
+  	  (norm_edit_dist < thre_edit_dist) ? "" : "!!!!",
+  	  thre_edit_dist);
 
   dlp_free(frm);
   if(b_is_fvr_calc) dlp_free(lvl);
 
-  return nad<tad && ned<ted;
+  return norm_acou_dist<thre_acou_dist && norm_edit_dist<thre_edit_dist;
 }
 
 void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
