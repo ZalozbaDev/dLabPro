@@ -287,11 +287,12 @@ INT32 data_findcompoffset(CData *idX,const char *lpsName){
   return CData_GetCompOffset(idX,nId);
 }
 
-FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
-  INT32 ssil=data_findsymbol(AS(CData,itDCr->os),"#");  /* Silence symbol index */
-  INT32 sgar=data_findsymbol(AS(CData,itDCr->os),".");  /* Garbage symbol index */
-  INT32 sbo=-1,sbc=-1;                                  /* Bracket symbol indices */
-  BOOL bfvr=isfvr(itDC,&sbo,&sbc);                      /* FVR confidence calculation? */
+FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
+{
+  INT32 s_silence_symbol = data_findsymbol(AS(CData,itDCr->os),"#");    /* Silence symbol index */
+  INT32 s_garbage_symbol = data_findsymbol(AS(CData,itDCr->os),".");    /* Garbage symbol index */
+  INT32 s_bracket_open=-1, s_bracket_close=-1;                          /* Bracket symbol indices */
+  BOOL b_is_fvr_calc = isfvr(itDC, &s_bracket_open, &s_bracket_close);  /* FVR confidence calculation? */
   CData *rtd=AS(CData,itDC->td);                        /* Result transition table */
   CData *ftd=AS(CData,itDCr->td);                       /* Reference transition table */
   INT32 rl,fl;                                          /* Transistions record length in result / reference */
@@ -312,7 +313,7 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
     FLOAT32 *tcnf;
   } *lvl=NULL, *li=NULL;
 
-  if(bfvr) CData_AddComp(rtd,"~CNF",T_FLOAT);
+  if(b_is_fvr_calc) CData_AddComp(rtd,"~CNF",T_FLOAT);
   rt =CData_XAddr(rtd,0,0);
   ft =CData_XAddr(ftd,0,0);
   rl =CData_GetRecLen(rtd);
@@ -326,11 +327,11 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
   ofw=data_findcompoffset(ftd,"~LSR");
   oro=data_findcompoffset(rtd,"~TOS");
   orc=data_findcompoffset(rtd,"~CNF");
-  if(oro<0 || orc<0) bfvr=FALSE;
+  if(oro<0 || orc<0) b_is_fvr_calc=FALSE;
   frm=fi=dlp_malloc((MAX(CData_GetNRecs(rtd),CData_GetNRecs(ftd))+1)*sizeof(*frm));
   fi[0].n=fi[0].neq=0;
   fi[0].rw=fi[0].fw=0.;
-  if(bfvr) lvl=li=dlp_malloc((MAX(CData_GetNRecs(rtd),CData_GetNRecs(ftd))+1)*sizeof(*lvl));
+  if(b_is_fvr_calc) lvl=li=dlp_malloc((MAX(CData_GetNRecs(rtd),CData_GetNRecs(ftd))+1)*sizeof(*lvl));
 
   tad=rCfg.rRej.nTAD;
   if(rCfg.rSearch.eTyp==RS_as) tad = rCfg.rRej.nASTAD;
@@ -340,12 +341,12 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
   for(;; rt+=rl,ft+=fl){
     INT32 rp=-1,fp=-1, ro;
     for( ; rt<ret ; rt+=rl){
-      if(bfvr && (ro=*(FST_STYPE*)(rt+oro))>=0){
-        if(ro==sbo){
+      if(b_is_fvr_calc && (ro=*(FST_STYPE*)(rt+oro))>=0){
+        if(ro==s_bracket_open){
           li++;
           li->ibo=fi-frm;
           li->tcnf=NULL;
-        }else if(ro==sbc){
+        }else if(ro==s_bracket_close){
           if(li>lvl){
             INT32   n  =fi->n  -frm[li->ibo].n;
             INT32   neq=fi->neq-frm[li->ibo].neq;
@@ -363,7 +364,7 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
     }
     while(ft<fet && (fp=*(FST_STYPE*)(ft+ofp))<0) ft+=fl;
     if(rt>=ret || ft>=fet) break;
-    if(rp==ssil || rp==sgar || fp==ssil || fp==sgar) continue;
+    if(rp==s_silence_symbol || rp==s_garbage_symbol || fp==s_silence_symbol || fp==s_garbage_symbol) continue;
     fi[1].n=fi[0].n+1;
     fi[1].neq=fi[0].neq+(rp==fp);
     if(orw>=0 && ofw>=0){
@@ -372,7 +373,7 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
     }
     fi++;
   }
-  if(bfvr && li!=lvl) rerror("FVR confidence: too less closing brackets ']'");
+  if(b_is_fvr_calc && li!=lvl) rerror("FVR confidence: too less closing brackets ']'");
 
   ted=rCfg.rRej.nTED;
 
@@ -389,7 +390,7 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr){
   	  ted);
 
   dlp_free(frm);
-  if(bfvr) dlp_free(lvl);
+  if(b_is_fvr_calc) dlp_free(lvl);
 
   return nad<tad && ned<ted;
 }
