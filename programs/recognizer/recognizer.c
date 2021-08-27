@@ -287,34 +287,37 @@ INT32 data_findcompoffset(CData *idX,const char *lpsName){
   return CData_GetCompOffset(idX,nId);
 }
 
-static FLOAT32 confidence_phn(CFst* itDCResult, CFst* itDCRefren)
+static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
 {
-  INT32 s_silence_symbol = data_findsymbol(AS(CData, itDCRefren->os),"#");   /* Silence symbol index */
-  INT32 s_garbage_symbol = data_findsymbol(AS(CData, itDCRefren->os),".");   /* Garbage symbol index */
-  INT32 s_bracket_open=-1, s_bracket_close=-1;                               /* Bracket symbol indices */
-  BOOL b_is_fvr_calc = isfvr(itDCResult, &s_bracket_open, &s_bracket_close); /* FVR confidence calculation? */
-  CData *result_trans_tab = AS(CData, itDCResult->td);                       /* Result transition table */
-  CData *refren_trans_tab = AS(CData, itDCRefren->td);                       /* Reference transition table */
-  INT32 result_reclen, refren_reclen;                                        /* Transistions record length in result / reference */
-  BYTE  *p_result_trans, *p_refren_trans;                                    /* Transistions pointer in result / reference */
-  BYTE  *p_result_last, *p_refren_last;                                      /* Pointer after last transition in result / reference */
-  INT32 off_result_phn, off_refren_phn;                                      /* Offset of ~PHN component in result / reference */
-  INT32 off_result_lsr, off_refren_lsr;                                      /* Offset of ~LSR component in result / reference */
-  INT32 off_result_tos;                                                      /* Offset of ~TOS component in result */
-  INT32 off_result_cnf;                                                      /* Offset of ~CNF component in result */
-  FLOAT32 norm_acou_dist, norm_edit_dist;                                    /* Normalized acoustic and edit distant */
-  FLOAT32 thre_acou_dist, thre_edit_dist, thre_fvr_lambda;                   /* Threshold for acoustic and edit distant */
-  struct {
+  INT32 s_silence_symbol = data_findsymbol(AS(CData, itDCRefren->os), "#");   /* Silence symbol index */
+  INT32 s_garbage_symbol = data_findsymbol(AS(CData, itDCRefren->os), ".");   /* Garbage symbol index */
+  INT32 s_bracket_open=-1, s_bracket_close=-1;                                /* Bracket symbol indices */
+  BOOL b_is_fvr_calc = isfvr(itDCResult, &s_bracket_open, &s_bracket_close);  /* FVR confidence calculation? */
+  CData *result_trans_tab = AS(CData, itDCResult->td);                        /* Result transition table */
+  CData *refren_trans_tab = AS(CData, itDCRefren->td);                        /* Reference transition table */
+  INT32 result_reclen, refren_reclen;                                         /* Transistions record length in result / reference */
+  BYTE  *p_result_trans, *p_refren_trans;                                     /* Transistions pointer in result / reference */
+  BYTE  *p_result_last, *p_refren_last;                                       /* Pointer after last transition in result / reference */
+  INT32 off_result_phn, off_refren_phn;                                       /* Offset of ~PHN component in result / reference */
+  INT32 off_result_lsr, off_refren_lsr;                                       /* Offset of ~LSR component in result / reference */
+  INT32 off_result_tos;                                                       /* Offset of ~TOS component in result */
+  INT32 off_result_cnf;                                                       /* Offset of ~CNF component in result */
+  FLOAT32 norm_acou_dist, norm_edit_dist;                                     /* Normalized acoustic and edit distant */
+  FLOAT32 thre_acou_dist, thre_edit_dist, thre_fvr_lambda;                    /* Threshold for acoustic and edit distant */
+  struct 
+  {
     INT32 n,neq;
     FLOAT32 rw,fw;
   } *frm, *fi;
-  struct {
+  struct 
+  {
     INT32 ibo;
     FLOAT32 *tcnf;
   } *lvl=NULL, *li=NULL;
 
   if (b_is_fvr_calc) CData_AddComp(result_trans_tab, "~CNF", T_FLOAT);
   
+  // pointers and lengths to transition tables
   p_result_trans = CData_XAddr(result_trans_tab,0,0);
   p_refren_trans = CData_XAddr(refren_trans_tab,0,0);
   result_reclen = CData_GetRecLen(result_trans_tab);
@@ -322,13 +325,16 @@ static FLOAT32 confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   p_result_last = p_result_trans + result_reclen * CData_GetNRecs(result_trans_tab);
   p_refren_last = p_refren_trans + refren_reclen * CData_GetNRecs(refren_trans_tab);
   
-  off_result_phn=data_findcompoffset(result_trans_tab,"~PHN");
-  off_refren_phn=data_findcompoffset(refren_trans_tab,"~PHN");
-  if(off_result_phn<0 || off_refren_phn<0) return 0;
+  // phoneme components are mandatory
+  off_result_phn = data_findcompoffset(result_trans_tab, "~PHN");
+  off_refren_phn = data_findcompoffset(refren_trans_tab, "~PHN");
+  if ((off_result_phn < 0) || (off_refren_phn < 0)) return FALSE;
+  
   off_result_lsr=data_findcompoffset(result_trans_tab,"~LSR");
   off_refren_lsr=data_findcompoffset(refren_trans_tab,"~LSR");
   off_result_tos=data_findcompoffset(result_trans_tab,"~TOS");
   off_result_cnf=data_findcompoffset(result_trans_tab,"~CNF");
+  
   if(off_result_tos<0 || off_result_cnf<0) b_is_fvr_calc=FALSE;
   frm=fi=dlp_malloc((MAX(CData_GetNRecs(result_trans_tab),CData_GetNRecs(refren_trans_tab))+1)*sizeof(*frm));
   fi[0].n=fi[0].neq=0;
@@ -394,7 +400,7 @@ static FLOAT32 confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   dlp_free(frm);
   if(b_is_fvr_calc) dlp_free(lvl);
 
-  return norm_acou_dist<thre_acou_dist && norm_edit_dist<thre_edit_dist;
+  return ((norm_acou_dist < thre_acou_dist) && (norm_edit_dist < thre_edit_dist)) ? TRUE : FALSE;
 }
 
 void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
@@ -415,18 +421,27 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
   }
   routput(O_dbg,1,"rec gw: %.5g %.5g\n",nGW0,nGW1);
 
-  if(nGW0 && nGW1){
-    switch(rCfg.rRej.eTyp){
-    case RR_phn: nRAcc=confidence_phn(itDC,itDCr); break;
-    case RR_off: nRAcc = 1; break;
-    case RR_two: {
-      FLOAT32 nWD = nGW1-nGW0;
-      FLOAT32 nNWD = (nGW1-nGW0)/nGW0;
-      nRAcc = nWD>rCfg.rRej.nTWOTWD && nNWD>rCfg.rRej.nTWOTNWD;
-      routput(O_dbg,1,"rec wd: %.4g nwd: %.4g twd: %.4g tnwd: %.4g\n",nWD,nNWD,rCfg.rRej.nTWOTWD,rCfg.rRej.nTWOTNWD);
-    }break;
+  if (nGW0 && nGW1)
+  {
+    switch(rCfg.rRej.eTyp)
+    {
+    case RR_phn: 
+    	nRAcc = (confidence_phn(itDC, itDCr) == TRUE) ? 1 : 0; 
+    	break;
+    case RR_off: 
+    	nRAcc = 1; 
+    	break;
+    case RR_two: 
+    	{
+    		FLOAT32 nWD = nGW1-nGW0;
+    		FLOAT32 nNWD = (nGW1-nGW0)/nGW0;
+    		nRAcc = nWD>rCfg.rRej.nTWOTWD && nNWD>rCfg.rRej.nTWOTNWD;
+    		routput(O_dbg,1,"rec wd: %.4g nwd: %.4g twd: %.4g tnwd: %.4g\n",nWD,nNWD,rCfg.rRej.nTWOTWD,rCfg.rRej.nTWOTNWD);
+    	}
+    	break;
     }
-  }else if(rCfg.rRej.eTyp==RR_off) nRAcc=1;
+  }
+  else if(rCfg.rRej.eTyp==RR_off) nRAcc=1;
   CData_AddComp(AS(CData,itDC->ud),"~ACC",T_INT);
   CData_Dstore(AS(CData,itDC->ud),nRAcc,0,CData_GetNComps(AS(CData,itDC->ud))-1);
   /* COR = sRes==sRRes */
