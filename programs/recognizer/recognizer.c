@@ -352,6 +352,19 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   thre_edit_dist = rCfg.rRej.nFVRTED;
   thre_fvr_lambda = rCfg.rRej.nFVRLAM;
 
+  printf("Result: ");
+  for (INT32 x = off_result_phn; p_result_trans + x < p_result_last; x += result_reclen)
+  {
+  	  printf("%02X ", *(FST_STYPE*)(p_result_trans + x));
+  }
+  printf("\n");
+  printf("Refren: ");
+  for (INT32 x = off_refren_phn; p_refren_trans + x < p_refren_last; x += refren_reclen)
+  {
+  	  printf("%02X ", *(FST_STYPE*)(p_refren_trans + x));
+  }
+  printf("\n");
+  
   for ( ; ; p_result_trans += result_reclen, p_refren_trans += refren_reclen)
   {
     INT32 loop_result_ptr = -1, loop_refren_ptr = -1, loop_result_off;
@@ -415,6 +428,14 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
       p_f_index[1].rw = p_f_index[0].rw + *(FST_WTYPE*)(p_result_trans + off_result_lsr);
       p_f_index[1].fw = p_f_index[0].fw + *(FST_WTYPE*)(p_refren_trans + off_refren_lsr);
     }
+    
+    printf("Index=%d Phonemes res=%d ref=%d NotEqual=%d RW=%.2f FW=%.2f\n",
+    	p_f_index[1].position,
+    	loop_result_ptr, loop_refren_ptr,
+    	p_f_index[1].not_equal,
+    	p_f_index[1].rw,
+    	p_f_index[1].fw);
+    
     p_f_index++;
   }
   
