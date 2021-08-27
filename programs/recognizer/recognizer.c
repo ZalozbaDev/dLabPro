@@ -293,10 +293,10 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
   INT32 s_garbage_symbol = data_findsymbol(AS(CData,itDCr->os),".");    /* Garbage symbol index */
   INT32 s_bracket_open=-1, s_bracket_close=-1;                          /* Bracket symbol indices */
   BOOL b_is_fvr_calc = isfvr(itDC, &s_bracket_open, &s_bracket_close);  /* FVR confidence calculation? */
-  CData *rtd=AS(CData,itDC->td);                        /* Result transition table */
-  CData *ftd=AS(CData,itDCr->td);                       /* Reference transition table */
-  INT32 rl,fl;                                          /* Transistions record length in result / reference */
-  BYTE  *rt,*ft;                                        /* Transistions pointer in result / reference */
+  CData *result_trans_tab = AS(CData,itDC->td);                         /* Result transition table */
+  CData *refren_trans_tab = AS(CData,itDCr->td);                        /* Reference transition table */
+  INT32 result_reclen, refren_reclen;                                   /* Transistions record length in result / reference */
+  BYTE  *p_result_trans,*p_refren_trans;                                /* Transistions pointer in result / reference */
   BYTE  *ret,*fet;                                      /* Pointer after last transition in result / reference */
   INT32 orp,ofp;                                        /* Offset of ~PHN component in result / reference */
   INT32 orw,ofw;                                        /* Offset of ~LSR component in result / reference */
@@ -313,35 +313,35 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
     FLOAT32 *tcnf;
   } *lvl=NULL, *li=NULL;
 
-  if(b_is_fvr_calc) CData_AddComp(rtd,"~CNF",T_FLOAT);
-  rt =CData_XAddr(rtd,0,0);
-  ft =CData_XAddr(ftd,0,0);
-  rl =CData_GetRecLen(rtd);
-  fl =CData_GetRecLen(ftd);
-  ret=rt+rl*CData_GetNRecs(rtd);
-  fet=ft+fl*CData_GetNRecs(ftd);
-  orp=data_findcompoffset(rtd,"~PHN");
-  ofp=data_findcompoffset(ftd,"~PHN");
+  if(b_is_fvr_calc) CData_AddComp(result_trans_tab,"~CNF",T_FLOAT);
+  p_result_trans =CData_XAddr(result_trans_tab,0,0);
+  p_refren_trans =CData_XAddr(refren_trans_tab,0,0);
+  result_reclen =CData_GetRecLen(result_trans_tab);
+  refren_reclen =CData_GetRecLen(refren_trans_tab);
+  ret=p_result_trans+result_reclen*CData_GetNRecs(result_trans_tab);
+  fet=p_refren_trans+refren_reclen*CData_GetNRecs(refren_trans_tab);
+  orp=data_findcompoffset(result_trans_tab,"~PHN");
+  ofp=data_findcompoffset(refren_trans_tab,"~PHN");
   if(orp<0 || ofp<0) return 0;
-  orw=data_findcompoffset(rtd,"~LSR");
-  ofw=data_findcompoffset(ftd,"~LSR");
-  oro=data_findcompoffset(rtd,"~TOS");
-  orc=data_findcompoffset(rtd,"~CNF");
+  orw=data_findcompoffset(result_trans_tab,"~LSR");
+  ofw=data_findcompoffset(refren_trans_tab,"~LSR");
+  oro=data_findcompoffset(result_trans_tab,"~TOS");
+  orc=data_findcompoffset(result_trans_tab,"~CNF");
   if(oro<0 || orc<0) b_is_fvr_calc=FALSE;
-  frm=fi=dlp_malloc((MAX(CData_GetNRecs(rtd),CData_GetNRecs(ftd))+1)*sizeof(*frm));
+  frm=fi=dlp_malloc((MAX(CData_GetNRecs(result_trans_tab),CData_GetNRecs(refren_trans_tab))+1)*sizeof(*frm));
   fi[0].n=fi[0].neq=0;
   fi[0].rw=fi[0].fw=0.;
-  if(b_is_fvr_calc) lvl=li=dlp_malloc((MAX(CData_GetNRecs(rtd),CData_GetNRecs(ftd))+1)*sizeof(*lvl));
+  if(b_is_fvr_calc) lvl=li=dlp_malloc((MAX(CData_GetNRecs(result_trans_tab),CData_GetNRecs(refren_trans_tab))+1)*sizeof(*lvl));
 
   tad=rCfg.rRej.nTAD;
   if(rCfg.rSearch.eTyp==RS_as) tad = rCfg.rRej.nASTAD;
   ted=rCfg.rRej.nFVRTED;
   lam=rCfg.rRej.nFVRLAM;
 
-  for(;; rt+=rl,ft+=fl){
+  for(;; p_result_trans+=result_reclen,p_refren_trans+=refren_reclen){
     INT32 rp=-1,fp=-1, ro;
-    for( ; rt<ret ; rt+=rl){
-      if(b_is_fvr_calc && (ro=*(FST_STYPE*)(rt+oro))>=0){
+    for( ; p_result_trans<ret ; p_result_trans+=result_reclen){
+      if(b_is_fvr_calc && (ro=*(FST_STYPE*)(p_result_trans+oro))>=0){
         if(ro==s_bracket_open){
           li++;
           li->ibo=fi-frm;
@@ -358,18 +358,18 @@ FLOAT32 confidence_phn(CFst* itDC, CFst* itDCr)
             else rerror("FVR confidence: no output symbol at certained bracket level");
             li--;
           }else rerror("FVR confidence: too many closing brackets ']'");
-        }else if(!li->tcnf) li->tcnf=(FLOAT32*)(rt+orc);
+        }else if(!li->tcnf) li->tcnf=(FLOAT32*)(p_result_trans+orc);
       }
-      if((rp=*(FST_STYPE*)(rt+orp))>=0) break;
+      if((rp=*(FST_STYPE*)(p_result_trans+orp))>=0) break;
     }
-    while(ft<fet && (fp=*(FST_STYPE*)(ft+ofp))<0) ft+=fl;
-    if(rt>=ret || ft>=fet) break;
+    while(p_refren_trans<fet && (fp=*(FST_STYPE*)(p_refren_trans+ofp))<0) p_refren_trans+=refren_reclen;
+    if(p_result_trans>=ret || p_refren_trans>=fet) break;
     if(rp==s_silence_symbol || rp==s_garbage_symbol || fp==s_silence_symbol || fp==s_garbage_symbol) continue;
     fi[1].n=fi[0].n+1;
     fi[1].neq=fi[0].neq+(rp==fp);
     if(orw>=0 && ofw>=0){
-      fi[1].rw=fi[0].rw+*(FST_WTYPE*)(rt+orw);
-      fi[1].fw=fi[0].fw+*(FST_WTYPE*)(ft+ofw);
+      fi[1].rw=fi[0].rw+*(FST_WTYPE*)(p_result_trans+orw);
+      fi[1].fw=fi[0].fw+*(FST_WTYPE*)(p_refren_trans+ofw);
     }
     fi++;
   }
