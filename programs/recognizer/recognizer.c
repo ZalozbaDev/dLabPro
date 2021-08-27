@@ -307,7 +307,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   
   struct 
   { 
-    INT32 n,neq;
+    INT32   position, not_equal;
     FLOAT32 rw,fw;
   } *p_f_start, *p_f_index;
   
@@ -341,7 +341,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   
   // allocate result computation arrays and zero-out initial values
   p_f_start = p_f_index = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*p_f_start));
-  p_f_index[0].n = p_f_index[0].neq = 0;
+  p_f_index[0].position = p_f_index[0].not_equal = 0;
   p_f_index[0].rw = p_f_index[0].fw = 0.;
   
   if(b_is_fvr_calc) p_lvl_outer = p_lvl_inner = dlp_malloc((MAX(CData_GetNRecs(result_trans_tab), CData_GetNRecs(refren_trans_tab)) + 1) * sizeof(*p_lvl_outer));
@@ -373,14 +373,14 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
           if (p_lvl_inner > p_lvl_outer)
           {
           	// closing bracket, do computation
-            INT32   n   = p_f_index->n  - p_f_start[p_lvl_inner->ibo].n;
-            INT32   neq = p_f_index->neq- p_f_start[p_lvl_inner->ibo].neq;
+            INT32   position   = p_f_index->position  - p_f_start[p_lvl_inner->ibo].position;
+            INT32   not_equal  = p_f_index->not_equal - p_f_start[p_lvl_inner->ibo].not_equal;
             FLOAT32 rw  = p_f_index->rw - p_f_start[p_lvl_inner->ibo].rw;
             FLOAT32 fw  = p_f_index->fw - p_f_start[p_lvl_inner->ibo].fw;
             
             // compute distances "in this hierarchy"?
             norm_acou_dist = off_result_lsr >= 0 && off_refren_lsr >= 0 ? rw ? ABS(rw-fw) / ABS(rw) : thre_acou_dist : 0.f;
-            norm_edit_dist = n ? 1.f - neq / (FLOAT32) n : thre_edit_dist;
+            norm_edit_dist = position ? 1.f - not_equal / (FLOAT32) position : thre_edit_dist;
             
             // save overall "confidence in this hierarchy"? inside the "CNF" component of the result
             if (p_lvl_inner->tcnf) *p_lvl_inner->tcnf = thre_fvr_lambda * MAX(1.f - norm_edit_dist / thre_edit_dist, -1.f) + (1.f - thre_fvr_lambda) * MAX(1.f - norm_acou_dist / thre_acou_dist, -1.f);
@@ -407,9 +407,10 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
     if ((loop_result_ptr == s_silence_symbol) || (loop_result_ptr == s_garbage_symbol) 
     	|| (loop_refren_ptr == s_silence_symbol) || (loop_refren_ptr == s_garbage_symbol)) continue;
     
-    p_f_index[1].n=p_f_index[0].n+1;
-    p_f_index[1].neq=p_f_index[0].neq+(loop_result_ptr==loop_refren_ptr);
-    if(off_result_lsr>=0 && off_refren_lsr>=0){
+    p_f_index[1].position  = p_f_index[0].position + 1;
+    p_f_index[1].not_equal = p_f_index[0].not_equal + (loop_result_ptr == loop_refren_ptr);
+    if(off_result_lsr>=0 && off_refren_lsr>=0)
+    {
       p_f_index[1].rw=p_f_index[0].rw+*(FST_WTYPE*)(p_result_trans+off_result_lsr);
       p_f_index[1].fw=p_f_index[0].fw+*(FST_WTYPE*)(p_refren_trans+off_refren_lsr);
     }
@@ -421,7 +422,7 @@ static BOOL confidence_phn(CFst* itDCResult, CFst* itDCRefren)
   thre_edit_dist = rCfg.rRej.nTED;
 
   norm_acou_dist = off_result_lsr>=0 && off_refren_lsr>=0 ? p_f_index[0].rw ? ABS(p_f_index[0].rw-p_f_index[0].fw) / ABS(p_f_index[0].rw) : thre_acou_dist : 0.f;
-  norm_edit_dist = p_f_index[0].n ? 1.f-p_f_index[0].neq / (FLOAT32)p_f_index[0].n : thre_edit_dist;
+  norm_edit_dist = p_f_index[0].position ? 1.f - p_f_index[0].not_equal / (FLOAT32)p_f_index[0].position : thre_edit_dist;
   routput(O_dbg, 1, "rec | nad: %s %.4g %s tnad: %.4g | ned: %s%.4g%s tned: %.4g | \n", 
   	  (norm_acou_dist < thre_acou_dist) ? "" : "!!!!",
   	  norm_acou_dist, 
