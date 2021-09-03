@@ -66,6 +66,8 @@ static BOOL rtcVadResult = FALSE;
 
 static BOOL mute_for_reaction = FALSE;
 
+static FLOAT32 normalization_factor = 1.0; 
+
 struct log {
   FILE *fdRaw;
   FILE *fdLab1;
@@ -833,44 +835,51 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 #define PABUF_SIZE    160
 #define PABUF_NUM     50
 #define PABUF_NXT(i)  ((i)+1<PABUF_NUM ? (i)+1 : 0)
-struct paBuf { /* Audio ring buffer */
-  FLOAT32 lpDat[PABUF_SIZE*PABUF_NUM];
-  INT32 nWPos;
-  INT32 nRPos;
+
+/* Audio ring buffer */
+struct pAudioBuffer 
+{ 
+  FLOAT32 lpDat[PABUF_SIZE * PABUF_NUM];
+  INT32 nWritePosition;
+  INT32 nReadPosition;
   INT32 nSkip;
   INT32 nCrate;
   INT32 nWlen;
-  FLOAT32 nVol;
-  FLOAT32 nPeak;
+  FLOAT32 nVolume; /* Volume adjustment factor (initialized with 1.0, originally unused) */
+  FLOAT32 nPeak; /* Max volume observed in one frame (meant for GUI output) */
 };
 
 int paCallback( const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void *userData )
 {
-  struct paBuf* lpBuf=(struct paBuf*)userData;
+  struct pAudioBuffer* lpBuf=(struct pAudioBuffer*)userData;
   INT32 i;
   FLOAT32 max=0.;
 
-  if(framesPerBuffer!=PABUF_SIZE) rerror("pa_input_size_missmatch (%i)\n",framesPerBuffer);
+  if(framesPerBuffer != PABUF_SIZE) rerror("pa_input_size_missmatch (%i)\n", framesPerBuffer);
 
-  INT32 nWnxt=PABUF_NXT(lpBuf->nWPos);
+  INT32 nWnxt=PABUF_NXT(lpBuf->nWritePosition);
   
   // discard data if ringbuffer full or mute requested
-  if ((nWnxt==lpBuf->nRPos) || (mute_for_reaction == TRUE))
+  if ((nWnxt == lpBuf->nReadPosition) || (mute_for_reaction == TRUE))
   { 
   	// fprintf(stderr, "%s\t", (mute_for_reaction == TRUE) ? "MMM" : "FFF");
     lpBuf->nSkip++; 
     return 0; 
   }
 
-  for(i=0;i<PABUF_SIZE;i++){
-    FLOAT32 v=((FLOAT32*)inputBuffer)[i]*lpBuf->nVol;
-    lpBuf->lpDat[lpBuf->nWPos*PABUF_SIZE+i]=v;
-    v=fabs(v);
-    if(v>max) max=v;
+  // compute some maximum (volume?)
+  for (i = 0; i < PABUF_SIZE; i++)
+  {
+    FLOAT32 v = ((FLOAT32*)inputBuffer)[i] * lpBuf->nVolume;
+    lpBuf->lpDat[lpBuf->nWritePosition * PABUF_SIZE + i] = v;
+    v = fabs(v);
+    if (v > max) max = v;
   }
 
-  lpBuf->nWPos=nWnxt;
-  if(max>lpBuf->nPeak) lpBuf->nPeak=max;
+  lpBuf->nWritePosition = nWnxt;
+  
+  // overwrite peak value in case "max" exceeds it
+  if (max > lpBuf->nPeak) lpBuf->nPeak = max;
 
   return 0;
 }
@@ -945,7 +954,7 @@ INT16 online(struct recosig *lpSig)
   /* Signal fetch */
 #ifdef __USE_PORTAUDIO
   PaStream*    stream;
-  struct paBuf lpBuf;
+  struct pAudioBuffer lpBuf;
   FLOAT32 lpWindow[400];
 #endif
   INT64        nSigPos = 0;
@@ -976,13 +985,13 @@ INT16 online(struct recosig *lpSig)
     /* Init signal fetch buffer */
     memset(lpBuf.lpDat,0,sizeof(lpBuf.lpDat[0])*PABUF_SIZE*PABUF_NUM);
     memset(lpWindow,0,sizeof(lpWindow[0])*400);
-    lpBuf.nWPos=0;
-    lpBuf.nRPos=0;
+    lpBuf.nWritePosition=0;
+    lpBuf.nReadPosition=0;
     lpBuf.nSkip=0;
     lpBuf.nCrate=nCrate;
     lpBuf.nWlen=rCfg.rPfa.lpFba.nWlen;
     lpBuf.nPeak=0.;
-    lpBuf.nVol=1.;
+    lpBuf.nVolume=1.;
 
     /* Init portaudio device */
     if ((rCfg.nAudioDev < 0) && (rCfg.sAudioDevName[0] == 0)) {
@@ -1076,7 +1085,7 @@ INT16 online(struct recosig *lpSig)
     
     /* Check for new signal fetched */
 #ifdef __USE_PORTAUDIO
-    if(lpSig || lpBuf.nWPos!=lpBuf.nRPos)
+    if(lpSig || lpBuf.nWritePosition!=lpBuf.nReadPosition)
 #endif
     {
       INT32 nXProcess=1;
@@ -1093,8 +1102,8 @@ INT16 online(struct recosig *lpSig)
       }else{
 #ifdef __USE_PORTAUDIO
         memmove(lpWindow,lpWindow+160,(400-160)*sizeof(FLOAT32));
-        memcpy(lpWindow+400-160,lpBuf.lpDat+lpBuf.nRPos*PABUF_SIZE,160*sizeof(FLOAT32));
-        lpBuf.nRPos=PABUF_NXT(lpBuf.nRPos);
+        memcpy(lpWindow+400-160,lpBuf.lpDat+lpBuf.nReadPosition*PABUF_SIZE,160*sizeof(FLOAT32));
+        lpBuf.nReadPosition=PABUF_NXT(lpBuf.nReadPosition);
         lpDat=lpWindow;
         nWlen=lpBuf.nWlen;
 #endif
@@ -1111,18 +1120,6 @@ INT16 online(struct recosig *lpSig)
         }
       }
 
-      /* GUI output */
-      if(rCfg.eOut==O_gui)
-      {
-        FLOAT32 nPeak = 0.f;
-        UINT64  nTime = dlp_time()%1000;
-        for (nI=0;nI<nWlen;nI++)
-          if (nPeak<fabs(lpDat[nI]))
-            nPeak = fabs(lpDat[nI]);
-        if (nPeak>0.f) nPeak = 20*log10(nPeak); else nPeak = -96;
-        routput(O_gui,1,"frm: %i lvl: %0.1f tim: %03i\n",nFrame,nPeak,nTime);
-      }
-      
 #ifdef __USE_WEBRTC_VAD
 	  /* need to convert from float32 to int16 */
 	  int16_t rtcAudioBuffer[nCrate];
@@ -1154,10 +1151,11 @@ INT16 online(struct recosig *lpSig)
 
       /* Do final Vad decision for last frame in pre buffer */
       if (!rCfg.rVAD.bOffline){ /* VAD is on-line */
-        nVadSfa=dlm_vad_process(bVadPfa,&lpVadState)?1:0;
-		if(nFrame-lpVadState.nDelay<0) nVadSfa=0;
+        nVadSfa = dlm_vad_process(bVadPfa, &lpVadState) ? 1 : 0;
+		if (nFrame - lpVadState.nDelay < 0) nVadSfa = 0;
 	  }else /* VAD is off-line */
-        nVadSfa=-1;
+        nVadSfa = -1;
+    
       if(rCfg.bVADForce || rCfg.bFSTForce){
         UINT8 nVal = (nFrame-lpVadState.nDelay)<0 || (nFrame-lpVadState.nDelay)>=rTmp.nNVadForce ? 0 : rTmp.lpVadForce[nFrame-lpVadState.nDelay];
         if(rCfg.bVADForce) nVadSfa = nVal;
@@ -1165,20 +1163,55 @@ INT16 online(struct recosig *lpSig)
       }
       if(rCfg.rSearch.bPermanent) nVadSfa=1;
 
-      /* VAD Debug output */
-      if(nVadSfa!=nVadSfaLast)
-      {
-        const char* s = "on #############POSKAM##################";
-        if      (nVadSfa==0) s = "off #################NJEPOSKAM##################";
-        else if (nVadSfa <0) s = "offline";
-        routput(O_dbg,1,"vad %s at frame %i\n",s,nFrame-lpVadState.nDelay);
-        nVadSfaLast=nVadSfa;
-        if(rCfg.rSearch.bIter && nVadSfa>0){
-          CData_Reset(BASEINST(rTmp.idNld),TRUE);
-          CFstsearch_Restart(rCfg.rDSession.itSP);
-          if(rCfg.rRej.eTyp==RR_phn) CFstsearch_Restart(rCfg.rDSession.itSPr);
-        }
+	  /* GUI output --> re-use for applying normalization */
+	  // if(rCfg.eOut==O_gui)
+	  {
+		FLOAT32 nPeak = 0.f;
+		UINT64  nTime = dlp_time()%1000;
+		for (nI=0;nI<nWlen;nI++)
+		  if (nPeak<fabs(lpDat[nI]))
+			nPeak = fabs(lpDat[nI]);
+		if (nPeak>0.f) nPeak = 20*log10(nPeak); else nPeak = -96;
+		// routput(O_gui,1,"frm: %i lvl: %0.1f tim: %03i\n",nFrame,nPeak,nTime);
+		routput(O_gui, 1, "lvl: %0.1fdB ",nPeak);
+			
+		  /* VAD Debug output */
+		  if (nVadSfa != nVadSfaLast)
+		  {
+			const char* s = "on #############POSKAM##################";
+			if      (nVadSfa==0) s = "off #################NJEPOSKAM##################";
+			else if (nVadSfa <0) s = "offline ###############????WOPRAWDZE_NJEPOSKAM???############################";
+			routput(O_dbg,1,"vad %s at frame %i\n",s,nFrame-lpVadState.nDelay);
+        
+        
+			if (nVadSfa > 0)
+			{
+				FLOAT32 levelDiffDB = -10.0 - nPeak;
+				FLOAT32 newVolume = pow(10.0, levelDiffDB / 20.0);
+				printf("Want to normalize for about %.1f, curr volume = %.1f, factor = %.2f\n", levelDiffDB, nPeak, newVolume);
+				normalization_factor = newVolume;
+			}
+			else
+			{
+				// reset volume back to normal
+				printf("Normalization reset!\n");
+				normalization_factor = 1.0;
+			}
+			nVadSfaLast=nVadSfa;
+			if(rCfg.rSearch.bIter && nVadSfa>0){
+			  CData_Reset(BASEINST(rTmp.idNld),TRUE);
+			  CFstsearch_Restart(rCfg.rDSession.itSP);
+			  if(rCfg.rRej.eTyp==RR_phn) CFstsearch_Restart(rCfg.rDSession.itSPr);
+			}
+		  }
+		  
+		  // actually normalize
+          for (nI=0; nI<nWlen; nI++)
+          {
+          	  lpDat[nI] *= normalization_factor;
+          }
       }
+#if 0      
       routput(O_vad,0,"pF%4i: V:%i Sw:%3i => VS:%i ViS:%2i VP:%2i VC:%2i => sF%4i V:%i ",
         nFrame,bVadPfa,nFSfaW,
         lpVadState.nState,lpVadState.nInState,lpVadState.nPre,lpVadState.nChange,
@@ -1186,6 +1219,7 @@ INT16 online(struct recosig *lpSig)
       if (nVadSfa>0) routput(O_vad,0,"Sr:%3i",nFSfaR);
       routput(O_vad,0," max: %5i",nSigMax);
       routput(O_vad,0," LastRes: %s\n",rTmp.rRes.sLastRes);
+#endif      
 
       /* Write VAD labels to label files */
       if(lpLog.fdLab1 && bVadPfa!=lpLog.bLab1){

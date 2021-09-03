@@ -61,46 +61,73 @@ void CGEN_IGNORE dlm_vad_initstate(struct dlm_vad_state *lpSVad,struct dlm_vad_p
 
 BOOL CGEN_IGNORE dlm_vad_process(BOOL bVadPfa,struct dlm_vad_state *lpSVad)
 {
-  switch(lpSVad->nState){
+  switch(lpSVad->nState)
+  {
+  	/* Inactive? */
     case VAD_SI:
-      if(!bVadPfa){ if(lpSVad->nPre<lpSVad->lpPVad.nPre) lpSVad->nPre++; }else{
-        lpSVad->nState=VAD_SP_PRE;
-        lpSVad->nInState=1;
+      if(!bVadPfa)
+      { 
+      	if(lpSVad->nPre < lpSVad->lpPVad.nPre) lpSVad->nPre++; 
+      } 
+      else 
+      {
+        lpSVad->nState = VAD_SP_PRE;
+        lpSVad->nInState = 1;
       }
-    break;
+      break;
+    /* Prebuf? */
     case VAD_SP_PRE:
-      if(!bVadPfa){
+      if(!bVadPfa)
+      {
         lpSVad->nState=VAD_SI;
-      }else{
-        if(lpSVad->nPre<lpSVad->lpPVad.nPre) lpSVad->nPre++;
-        if(lpSVad->nInState<lpSVad->lpPVad.nMinSp) lpSVad->nInState++; else {
-          lpSVad->nState=VAD_SP;
-          lpSVad->nChange=lpSVad->nDelay-lpSVad->nPre-lpSVad->nInState+1;
+      }
+      else
+      {
+        if(lpSVad->nPre < lpSVad->lpPVad.nPre) lpSVad->nPre++;
+        
+        if(lpSVad->nInState < lpSVad->lpPVad.nMinSp) lpSVad->nInState++; 
+        else 
+        {
+          lpSVad->nState = VAD_SP;
+          lpSVad->nChange = lpSVad->nDelay - lpSVad->nPre - lpSVad->nInState + 1;
         }
       }
-    break;
+      break;
+    /* Active? */
     case VAD_SP:
-      if(!bVadPfa){
-        lpSVad->nState=VAD_SP_POST;
-        lpSVad->nInState=1;
+      if(!bVadPfa)
+      {
+        lpSVad->nState = VAD_SP_POST;
+        lpSVad->nInState = 1;
       }
-    break;
+      break;
+    /* Postbuf ? */
     case VAD_SP_POST:
-      if(!bVadPfa){
-        if(lpSVad->nInState<lpSVad->lpPVad.nMinSi) lpSVad->nInState++; else{
-          lpSVad->nState=VAD_SI;
-          lpSVad->nPre=1;
-          lpSVad->nChange=-lpSVad->nDelay+(lpSVad->lpPVad.nMinSi-lpSVad->lpPVad.nPost)-1;
+      if(!bVadPfa)
+      {
+        if(lpSVad->nInState<lpSVad->lpPVad.nMinSi) lpSVad->nInState++; 
+        else
+        {
+          lpSVad->nState = VAD_SI;
+          lpSVad->nPre = 1;
+          lpSVad->nChange = -lpSVad->nDelay + (lpSVad->lpPVad.nMinSi - lpSVad->lpPVad.nPost) - 1;
         }
-      }else lpSVad->nState=VAD_SP;
-    break;
+      }
+      else lpSVad->nState=VAD_SP;
+      break;
   }
+  
   if(!lpSVad->nChange) return lpSVad->bVadSfa;
-  if(lpSVad->nChange<0){
+  
+  if(lpSVad->nChange<0)
+  {
     if(!++lpSVad->nChange) lpSVad->bVadSfa=FALSE;
-  }else{
+  }
+  else
+  {
     if(!--lpSVad->nChange) lpSVad->bVadSfa=TRUE;
   }
+  
   return lpSVad->bVadSfa;
 }
 
