@@ -77,12 +77,15 @@ static uint8_t              interfaceNumber;
 static BOOL                 respeakerVadComplete = TRUE;
 static BOOL                 respeakerVadResult = FALSE;
 
+#define VENDOR_ID  0x2886
+#define PRODUCT_ID 0x0018
+
 static void respeaker_vad_result_cb(int active)
 {
 	printf ("VAD status : %d\n", active);
 	
 	respeakerVadComplete = TRUE;
-	respeakerVadResult   = (active == 0) FALSE : TRUE;
+	respeakerVadResult   = (active == 0) ? FALSE : TRUE;
 }
 #endif
 
@@ -1393,7 +1396,7 @@ INT16 online(struct recosig *lpSig)
 		
 		respeakerVadComplete = FALSE;
 		
-		status = usb_mic_array__vad_request(devHandle, vad_status);
+		status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb);
 		
 		if (status != 0)
 		{
