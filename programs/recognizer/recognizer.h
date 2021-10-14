@@ -55,7 +55,7 @@
 #define RECOIN        E(none), E(cmd), E(fea)
 #define RECOSEARCHTYP E(tp), E(as)
 #define RECOREJTYP    E(off), E(phn), E(two)
-#define RECOVADTYP    E(none), E(eng), E(gmm), E(rtc)
+#define RECOVADTYP    E(none), E(eng), E(gmm), E(rtc), E(usb)
 
 #ifdef _CFG_C
 #define E(X)  #X

@@ -28,9 +28,14 @@
 #include "dlp_math.h"
 
 #define __USE_WEBRTC_VAD
+#define __USE_RESPEAKER_VAD
 
 #ifdef __USE_WEBRTC_VAD
 #include "../../../webrtc-audio-processing/webrtc/common_audio/vad/include/webrtc_vad.h"
+#endif
+
+#ifdef __USE_RESPEAKER_VAD
+#include "../../../usb_4_mic_array/cpp/tuning.h"
 #endif
 
 #ifdef __USE_PORTAUDIO
@@ -62,6 +67,23 @@ INT64 nFrameDiffSeconds = 0; /* Last frame diff in seconds for counting down unt
 #ifdef __USE_WEBRTC_VAD
 static VadInst* rtcVadInst;
 static BOOL rtcVadResult = FALSE;
+#endif
+
+// again dirty result passing
+#ifdef __USE_RESPEAKER_VAD
+static libusb_device_handle *devHandle; 
+static libusb_context       *context;
+static uint8_t              interfaceNumber;
+static BOOL                 respeakerVadComplete = TRUE;
+static BOOL                 respeakerVadResult = FALSE;
+
+static void respeaker_vad_result_cb(int active)
+{
+	printf ("VAD status : %d\n", active);
+	
+	respeakerVadComplete = TRUE;
+	respeakerVadResult   = (active == 0) FALSE : TRUE;
+}
 #endif
 
 static BOOL mute_for_reaction = FALSE;
@@ -825,6 +847,22 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 #else
 	return FALSE;
 #endif
+  case RV_usb:
+#ifdef __USE_RESPEAKER_VAD
+	int status;
+	while (respeakerVadComplete == FALSE)
+	{
+		status = usb_mic_array__vad_process(context);
+		if (status != 0)
+		{
+			printf("VAD process error!\n");	
+		}
+		usb_mic_array__vad_cleanup();
+	}
+	return respeakerVadResult;
+#else
+	return FALSE;
+#endif
   }
   return TRUE;
 }
@@ -972,7 +1010,12 @@ INT16 online(struct recosig *lpSig)
 	if (WebRtcVad_Init(rtcVadInst) != 0) return NOT_EXEC;
 	if (WebRtcVad_set_mode(rtcVadInst, rCfg.rVAD.nWebRTCAggr) != 0) return NOT_EXEC;
 #endif
-    
+
+#ifdef __USE_RESPEAKER_VAD
+	if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID) != 0) return NOT_EXEC;
+	respeakerVadComplete = TRUE;
+#endif
+
     /* Init signal fetch buffer */
     memset(lpBuf.lpDat,0,sizeof(lpBuf.lpDat[0])*PABUF_SIZE*PABUF_NUM);
     memset(lpWindow,0,sizeof(lpWindow[0])*400);
@@ -1342,6 +1385,22 @@ INT16 online(struct recosig *lpSig)
     if(rCfg.sPostProc[0] && nVadSfa<=0) rTmp.nColSigLen=0;
 
     if(rCfg.eIn==I_cmd) cmdqueueget();
+    
+#ifdef __USE_RESPEAKER_VAD
+	if (respeakerVadComplete == TRUE)
+	{
+		int status;
+		
+		respeakerVadComplete = FALSE;
+		
+		status = usb_mic_array__vad_request(devHandle, vad_status);
+		
+		if (status != 0)
+		{
+			printf("VAD request error!\n");	
+		}
+	}
+#endif    
   }
 
   /*if(lpCmdThread) dlp_terminate_thread(lpCmdThread,0);*/
@@ -1367,6 +1426,10 @@ INT16 online(struct recosig *lpSig)
 
 #ifdef __USE_WEBRTC_VAD
 	WebRtcVad_Free(rtcVadInst);
+#endif
+
+#ifdef __USE_RESPEAKER_VAD
+	usb_mic_array__close_usb_device(devHandle, context);
 #endif
 
   /* All done */
