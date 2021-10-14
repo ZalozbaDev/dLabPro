@@ -1012,11 +1012,6 @@ INT16 online(struct recosig *lpSig)
 	if (WebRtcVad_set_mode(rtcVadInst, rCfg.rVAD.nWebRTCAggr) != 0) return NOT_EXEC;
 #endif
 
-#ifdef __USE_RESPEAKER_VAD
-	if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID) != 0) return NOT_EXEC;
-	respeakerVadComplete = TRUE;
-#endif
-
     /* Init signal fetch buffer */
     memset(lpBuf.lpDat,0,sizeof(lpBuf.lpDat[0])*PABUF_SIZE*PABUF_NUM);
     memset(lpWindow,0,sizeof(lpWindow[0])*400);
@@ -1052,6 +1047,12 @@ INT16 online(struct recosig *lpSig)
     if(rCfg.eIn==I_cmd) /*lpCmdThread=*/dlp_create_thread(cmdthread,NULL);
   }
 
+#ifdef __USE_RESPEAKER_VAD
+	// yes, unintuitive, here 1 == good
+	if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID) != 1) return NOT_EXEC;
+	respeakerVadComplete = TRUE;
+#endif
+  
   /* Get feature dimension after delta calculation */
   nXDelta=nPfaDim;
   delta(NULL,&nXDelta,0,nXDelta);
