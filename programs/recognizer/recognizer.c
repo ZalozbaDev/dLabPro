@@ -893,7 +893,7 @@ static int internal_audio_devlist(const char* devNameToFind)
     {
     	if (strncasecmp(devNameToFind, deviceInfo->name,strnlen(devNameToFind, STR_LEN)) == 0)
     	{
-    		printf("Found requested device %s!\n", 	devNameToFind);
+    		printf("Found requested device %s! Opening index %d.\n", devNameToFind, i);
     		retval = i;
     	}
     }
