@@ -852,11 +852,9 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 #endif
   case RV_usb:
 #ifdef __USE_RESPEAKER_VAD
-	int status;
 	while (respeakerVadComplete == FALSE)
 	{
-		status = usb_mic_array__vad_process(context);
-		if (status != 0)
+		if (usb_mic_array__vad_process(context) != 0)
 		{
 			printf("VAD process error!\n");	
 		}
