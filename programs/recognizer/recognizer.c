@@ -82,7 +82,7 @@ static BOOL                 respeakerVadResult = FALSE;
 
 static void respeaker_vad_result_cb(int active)
 {
-	printf ("VAD status : %d\n", active);
+	// printf ("VAD status : %d\n", active);
 	
 	respeakerVadComplete = TRUE;
 	respeakerVadResult   = (active == 0) ? FALSE : TRUE;
@@ -858,8 +858,8 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 		{
 			printf("VAD process error!\n");	
 		}
-		usb_mic_array__vad_cleanup();
 	}
+	usb_mic_array__vad_cleanup();
 	return respeakerVadResult;
 #else
 	return FALSE;
