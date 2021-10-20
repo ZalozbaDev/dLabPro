@@ -1049,7 +1049,7 @@ INT16 online(struct recosig *lpSig)
 
 #ifdef __USE_RESPEAKER_VAD
 	// yes, unintuitive, here 1 == good
-	if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID) != 1) return NOT_EXEC;
+	if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID, 0) != 1) return NOT_EXEC;
 	respeakerVadComplete = TRUE;
 #endif
   
