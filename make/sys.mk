@@ -116,13 +116,17 @@ ifneq ($(wildcard $(GITHEAD)),)
   ifneq ($(filter ref:,$(GITREV)),)
     GITREV := $(shell cat $(DLABPRO_HOME)/.git/$(filter-out ref:,$(GITREV)))
   endif
+  # $(info GITREV is $(GITREV))
 endif
 ifneq ($(wildcard $(DLPREV)),)
- GITREVO := $(subst ",,$(filter-out \#define __DLP_BUILD,$(shell cat $(DLPREV))))
+ # filter away the words "#define" and "__DLP_BUILD"
+ # remove quotes of the resulting string
+ GITREVO := $(subst ",,$(filter-out #define __DLP_BUILD,$(shell cat $(DLPREV))))
 else
   GITREVO = CREATE
 endif
 ifneq ($(GITREVO),$(GITREV))
+  # $(info  GITREVO is $(GITREVO) and GITREV is $(GITREV) - not equal e.g. recreate)
   $(shell echo "" >&2)
   $(shell echo "// Update dlp_rev.h with new revision $(GITREV)" >&2)
   $(shell echo '#define __DLP_BUILD "$(GITREV)"' >$(DLPREV))
