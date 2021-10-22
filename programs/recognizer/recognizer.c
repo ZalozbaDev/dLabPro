@@ -852,6 +852,7 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 #endif
   case RV_usb:
 #ifdef __USE_RESPEAKER_VAD
+	/*
 	while (respeakerVadComplete == FALSE)
 	{
 		if (usb_mic_array__vad_process(context) != 0)
@@ -860,6 +861,7 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 		}
 	}
 	usb_mic_array__vad_cleanup();
+	*/
 	return respeakerVadResult;
 #else
 	return FALSE;
@@ -1007,9 +1009,12 @@ INT16 online(struct recosig *lpSig)
     if(Pa_Initialize()!=paNoError) return NOT_EXEC;
 
 #ifdef __USE_WEBRTC_VAD
-	rtcVadInst = WebRtcVad_Create();
-	if (WebRtcVad_Init(rtcVadInst) != 0) return NOT_EXEC;
-	if (WebRtcVad_set_mode(rtcVadInst, rCfg.rVAD.nWebRTCAggr) != 0) return NOT_EXEC;
+	if (rCfg.rVAD.eVadType == RV_rtc)
+	{
+		rtcVadInst = WebRtcVad_Create();
+		if (WebRtcVad_Init(rtcVadInst) != 0) return NOT_EXEC;
+		if (WebRtcVad_set_mode(rtcVadInst, rCfg.rVAD.nWebRTCAggr) != 0) return NOT_EXEC;
+	}
 #endif
 
     /* Init signal fetch buffer */
@@ -1048,9 +1053,12 @@ INT16 online(struct recosig *lpSig)
   }
 
 #ifdef __USE_RESPEAKER_VAD
-	// yes, unintuitive, here 1 == good
-	if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID, 0) != 1) return NOT_EXEC;
-	respeakerVadComplete = TRUE;
+	if (rCfg.rVAD.eVadType == RV_usb)
+	{
+		// yes, unintuitive, here 1 == good
+		if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID, 0) != 1) return NOT_EXEC;
+		respeakerVadComplete = TRUE;
+	}
 #endif
   
   /* Get feature dimension after delta calculation */
@@ -1169,19 +1177,36 @@ INT16 online(struct recosig *lpSig)
       }
       
 #ifdef __USE_WEBRTC_VAD
-	  /* need to convert from float32 to int16 */
-	  int16_t rtcAudioBuffer[nCrate];
-	  for (int bufCtr = 0; bufCtr < nCrate; bufCtr++)
+	  if (rCfg.rVAD.eVadType == RV_rtc)
 	  {
-	  	  rtcAudioBuffer[bufCtr] = lpDat[bufCtr] * 32767.0f;
+		  /* need to convert from float32 to int16 */
+		  int16_t rtcAudioBuffer[nCrate];
+		  for (int bufCtr = 0; bufCtr < nCrate; bufCtr++)
+		  {
+			  rtcAudioBuffer[bufCtr] = lpDat[bufCtr] * 32767.0f;
+		  }
+		  
+		  int tmpRtcVadResult = WebRtcVad_Process(rtcVadInst, rCfg.nSigSampleRate, rtcAudioBuffer, nCrate);
+		  if (tmpRtcVadResult == -1) {
+			  printf("WebRtcVad_Process() returned an error!\n");
+			  rtcVadResult = FALSE;
+		  } else {
+			  rtcVadResult = (tmpRtcVadResult == 1) ? TRUE : FALSE;
+		  }
 	  }
-	  
-	  int tmpRtcVadResult = WebRtcVad_Process(rtcVadInst, rCfg.nSigSampleRate, rtcAudioBuffer, nCrate);
-	  if (tmpRtcVadResult == -1) {
-	  	  printf("WebRtcVad_Process() returned an error!\n");
-	  	  rtcVadResult = FALSE;
-	  } else {
-	  	  rtcVadResult = (tmpRtcVadResult == 1) ? TRUE : FALSE;
+#endif
+
+#ifdef __USE_RESPEAKER_VAD
+	  if (rCfg.rVAD.eVadType == RV_usb)
+	  {
+		  while (respeakerVadComplete == FALSE)
+		  {
+			  if (usb_mic_array__vad_process(context) != 0)
+			  {
+				  printf("VAD process error!\n");	
+			  }
+		  }
+		  usb_mic_array__vad_cleanup();
 	  }
 #endif
 
@@ -1389,17 +1414,20 @@ INT16 online(struct recosig *lpSig)
     if(rCfg.eIn==I_cmd) cmdqueueget();
     
 #ifdef __USE_RESPEAKER_VAD
-	if (respeakerVadComplete == TRUE)
+	if (rCfg.rVAD.eVadType == RV_usb)
 	{
-		int status;
-		
-		respeakerVadComplete = FALSE;
-		
-		status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb);
-		
-		if (status != 0)
+		if (respeakerVadComplete == TRUE)
 		{
-			printf("VAD request error!\n");	
+			int status;
+			
+			respeakerVadComplete = FALSE;
+			
+			status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb);
+			
+			if (status != 0)
+			{
+				printf("VAD request error!\n");	
+			}
 		}
 	}
 #endif    
@@ -1427,11 +1455,17 @@ INT16 online(struct recosig *lpSig)
 #endif
 
 #ifdef __USE_WEBRTC_VAD
-	WebRtcVad_Free(rtcVadInst);
+	if (rCfg.rVAD.eVadType == RV_rtc)
+	{
+		WebRtcVad_Free(rtcVadInst);
+	}
 #endif
 
 #ifdef __USE_RESPEAKER_VAD
-	usb_mic_array__close_usb_device(devHandle, context);
+	if (rCfg.rVAD.eVadType == RV_usb)
+	{
+		usb_mic_array__close_usb_device(devHandle, context);
+	}
 #endif
 
   /* All done */
