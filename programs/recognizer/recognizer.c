@@ -29,6 +29,7 @@
 
 #define __USE_WEBRTC_VAD
 #define __USE_RESPEAKER_VAD
+#define __USE_VAD_LOGGING
 
 #ifdef __USE_WEBRTC_VAD
 #include "../../../webrtc-audio-processing/webrtc/common_audio/vad/include/webrtc_vad.h"
@@ -40,6 +41,10 @@
 
 #ifdef __USE_PORTAUDIO
 #include "portaudio.h"
+#endif
+
+#ifdef __USE_VAD_LOGGING
+#include "vadlogger.h"
 #endif
 
 #ifdef __MINGW32__
@@ -1060,7 +1065,11 @@ INT16 online(struct recosig *lpSig)
 		respeakerVadComplete = TRUE;
 	}
 #endif
-  
+
+#ifdef __USE_VAD_LOGGING
+  vad_logging_init();
+#endif
+
   /* Get feature dimension after delta calculation */
   nXDelta=nPfaDim;
   delta(NULL,&nXDelta,0,nXDelta);
@@ -1466,6 +1475,10 @@ INT16 online(struct recosig *lpSig)
 	{
 		usb_mic_array__close_usb_device(devHandle, context);
 	}
+#endif
+
+#ifdef __USE_VAD_LOGGING
+  vad_logging_exit();
 #endif
 
   /* All done */

@@ -32,7 +32,7 @@ SEXT     = c
 
 INCL     = -I.
 
-SOURCES   = $(PROJNAME) cfg cfgdef hlp cmd
+SOURCES   = $(PROJNAME) cfg cfgdef hlp cmd vadlogger
 
 LIBS      = \
 	$(CLS_LPTH)/fstsearch$(LET) $(LPOST)  \
