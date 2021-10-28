@@ -903,6 +903,18 @@ int paCallback( const void *inputBuffer, void *outputBuffer, unsigned long frame
   // discard data if ringbuffer full or mute requested
   if ((nWnxt==lpBuf->nRPos) || (mute_for_reaction == TRUE))
   { 
+	  
+#ifdef __USE_VAD_LOGGING
+	// be verbose when frames are dropped in case we wish to record
+	if (rCfg.rVAD.bLogAudio == TRUE)
+	{
+		if (mute_for_reaction == FALSE)
+		{
+			fprintf(stderr, "PA OVRFLW! ");	
+		}
+	}
+#endif
+
   	// fprintf(stderr, "%s\t", (mute_for_reaction == TRUE) ? "MMM" : "FFF");
     lpBuf->nSkip++; 
     return 0; 
@@ -1066,13 +1078,6 @@ INT16 online(struct recosig *lpSig)
 	}
 #endif
 
-#ifdef __USE_VAD_LOGGING
-	if (rCfg.rVAD.bLogAudio == TRUE)
-	{
-		vad_logging_init();
-	}
-#endif
-
   /* Get feature dimension after delta calculation */
   nXDelta=nPfaDim;
   delta(NULL,&nXDelta,0,nXDelta);
@@ -1094,6 +1099,13 @@ INT16 online(struct recosig *lpSig)
     rTmp.lpColSig=dlp_malloc(rCfg.rVAD.nMaxSp*nCrate*sizeof(FLOAT32));
     rTmp.nColSigLen=0;
   }
+
+#ifdef __USE_VAD_LOGGING
+	if (rCfg.rVAD.bLogAudio == TRUE)
+	{
+		vad_logging_init(lpVadState.nDelay);
+	}
+#endif
 
   if(!lpSig) routput(O_sta,1,"online recognizer initialized\n");
   /* Loop until there is a signal */
@@ -1162,6 +1174,14 @@ INT16 online(struct recosig *lpSig)
         lpBuf.nRPos=PABUF_NXT(lpBuf.nRPos);
         lpDat=lpWindow;
         nWlen=lpBuf.nWlen;
+
+#ifdef __USE_VAD_LOGGING
+		if (rCfg.rVAD.bLogAudio == TRUE)
+		{
+			vad_logging_add_frame(nFrame, lpDat, 160*sizeof(FLOAT32));
+		}
+#endif
+        
 #endif
       }
       rTmp.nDuration+=nCrate/(FLOAT32)rCfg.nSigSampleRate;
