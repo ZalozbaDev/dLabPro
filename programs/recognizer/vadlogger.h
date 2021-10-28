@@ -26,7 +26,11 @@
 #ifndef _VADLOGGER_H
 #define _VADLOGGER_H
 
+#include "dlp_base.h"
+
 void vad_logging_init(void);
+
+void vad_logging_frame_status(INT64 nFrame, INT16 nVadSfa);
 
 void vad_logging_exit(void);
 

@@ -53,6 +53,11 @@ void vad_logging_init(void)
 	}
 }
 
+void vad_logging_frame_status(INT64 nFrame, INT16 nVadSfa)
+{
+	printf("Frame %ld VAD %d.\n", nFrame, nVadSfa);	
+}
+
 void vad_logging_exit(void)
 {
 	printf("VAD logging stopped!\n");

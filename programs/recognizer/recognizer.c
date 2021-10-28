@@ -1260,6 +1260,13 @@ INT16 online(struct recosig *lpSig)
           CFstsearch_Restart(rCfg.rDSession.itSP);
           if(rCfg.rRej.eTyp==RR_phn) CFstsearch_Restart(rCfg.rDSession.itSPr);
         }
+        
+#ifdef __USE_VAD_LOGGING
+		if (rCfg.rVAD.bLogAudio == TRUE)
+		{
+			vad_logging_frame_status(nFrame - lpVadState.nDelay, nVadSfa);
+		}
+#endif		
       }
       routput(O_vad,0,"pF%4i: V:%i Sw:%3i => VS:%i ViS:%2i VP:%2i VC:%2i => sF%4i V:%i ",
         nFrame,bVadPfa,nFSfaW,
