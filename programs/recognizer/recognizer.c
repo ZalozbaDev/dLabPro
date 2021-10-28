@@ -1067,7 +1067,10 @@ INT16 online(struct recosig *lpSig)
 #endif
 
 #ifdef __USE_VAD_LOGGING
-  vad_logging_init();
+	if (rCfg.rVAD.bLogAudio == TRUE)
+	{
+		vad_logging_init();
+	}
 #endif
 
   /* Get feature dimension after delta calculation */
@@ -1478,7 +1481,10 @@ INT16 online(struct recosig *lpSig)
 #endif
 
 #ifdef __USE_VAD_LOGGING
-  vad_logging_exit();
+	if (rCfg.rVAD.bLogAudio == TRUE)
+	{
+		vad_logging_exit();
+	}
 #endif
 
   /* All done */

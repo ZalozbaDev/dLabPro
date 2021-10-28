@@ -26,12 +26,34 @@
 
 #include "vadlogger.h"
 
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
+#define LOG_DIRECTORY "vad_logs/"
+
 void vad_logging_init(void)
 {
+	int result;
 	
+	printf("VAD logging enabled!\n");
+	
+	result = mkdir(LOG_DIRECTORY, 0777);
+	if (result != 0)
+	{
+		if (errno == EEXIST)
+		{
+			printf("Directory %s already exists and might have old files in it.\n", LOG_DIRECTORY);	
+		}
+		else
+		{
+			printf("Directory create error %d.\n", errno);	
+		}
+	}
 }
 
 void vad_logging_exit(void)
 {
-	
+	printf("VAD logging stopped!\n");
 }
