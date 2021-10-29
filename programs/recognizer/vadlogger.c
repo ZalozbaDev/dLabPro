@@ -98,7 +98,8 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 	FLOAT32* currBuf;
 	FLOAT32* altBuf;
 	
-	printf("Frm: %ld Buf=%d Ptr=%ld\n", nFrame, activeBuf, activeBufPtrEnd);
+	// printf("Frm: %ld Buf=%d Ptr=%ld\n", nFrame, activeBuf, activeBufPtrEnd);
+	
 	if (activeBuf == 1)
 	{
 		currBuf = buf1;
@@ -145,6 +146,8 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 					activeBuf = 1;
 				}
 				activeBufPtrEnd -= frame_delay;
+				
+				activeBufFrameCtrStart += frame_delay;
 			}
 		}
 	}
@@ -152,10 +155,78 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 	activeBufPtrEnd++;
 }
 
-void vad_logging_frame_status(INT64 nFrame, INT16 nVadSfa)
+void vad_logging_frame_status(INT64 nFrame, INT16 currVADStatus)
 {
-	printf("Frame %ld VAD %d.\n", nFrame, nVadSfa);
+	// printf("Frame %ld VAD %d.\n", nFrame, currVADStatus);
 	
+	if (currVADStatus == 1)
+	{
+		// VAD start, remember start frame and record continuously
+		activeBufFrameCtrVadOffset = nFrame;
+	}
+	else
+	{
+		// ignore VAD off at program start
+		if (nFrame > 0)
+		{
+			// VAD end, write file
+			char fullfilename[200];
+			char filenamepart[100];
+			FILE* outfd;
+			FLOAT32* currBuf;
+			
+			printf("VAD buffer: active=%d start=%ld vadstart=%ld size=%ld\n", activeBuf, activeBufFrameCtrStart, activeBufFrameCtrVadOffset, activeBufPtrEnd);
+			
+			assert(activeBufFrameCtrVadOffset > activeBufFrameCtrStart);
+			
+			filenamepart[0] = 0;
+			snprintf(filenamepart, 100, "%08u-%08u", activeBufFrameCtrVadOffset, activeBufFrameCtrStart + activeBufPtrEnd);
+			
+			fullfilename[0] = 0;
+			snprintf(fullfilename, 200, "%s%s.raw", LOG_DIRECTORY, filenamepart);
+			
+			printf("File name to open for writing: '%s'.\n", fullfilename);
+			
+			outfd = fopen(fullfilename, "w");
+			if (outfd != NULL)
+			{
+				UINT32 writeBufOffset;
+				UINT32 writeBufSize;
+				size_t currWritten;
+				
+				if (activeBuf == 1)
+				{
+					currBuf = buf1;
+				}
+				else
+				{
+					currBuf = buf2;
+				}
+				
+				writeBufOffset = 160 * (activeBufFrameCtrVadOffset - activeBufFrameCtrStart);
+				writeBufSize = 160 * (activeBufPtrEnd - (activeBufFrameCtrVadOffset - activeBufFrameCtrStart));
+				
+				currWritten = fwrite(currBuf + writeBufOffset, sizeof(FLOAT32), writeBufSize, outfd);
+				
+				assert(currWritten == writeBufSize);
+				
+				fclose(outfd);
+			}
+			else
+			{
+				printf("File open error: %d\n", errno);	
+			}
+
+			// restart capture from beginning
+			activeBuf = 1;
+			activeBufPtrEnd = 0;
+			
+			activeBufFrameCtrStart = 0;
+			activeBufFrameCtrVadOffset = 0;
+		}
+	}
+	
+	vadStatus = currVADStatus;
 }
 
 void vad_logging_exit(void)

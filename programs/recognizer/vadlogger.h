@@ -32,7 +32,7 @@ void vad_logging_init(INT32 nDelay);
 
 void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length);
 
-void vad_logging_frame_status(INT64 nFrame, INT16 nVadSfa);
+void vad_logging_frame_status(INT64 nFrame, INT16 currVADStatus);
 
 void vad_logging_exit(void);
 
