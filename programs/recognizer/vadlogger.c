@@ -120,7 +120,7 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 	}
 	
 	// copy this frame to current buffer
-	memcpy(currBuf + (activeBufPtrEnd * 160 * sizeof(FLOAT32)), buffer, length);
+	memcpy(currBuf + (activeBufPtrEnd * 160), buffer, length);
 	
 	// not active yet, check if data needs to be duplicated
 	//  0..20 = write to active buffer
@@ -130,7 +130,7 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 	{
 		if ((activeBufPtrEnd > frame_delay) && (activeBufPtrEnd <= (frame_delay * 2)))
 		{
-			memcpy(altBuf + ((activeBufPtrEnd - frame_delay) * 160 * sizeof(FLOAT32)), buffer, length);
+			memcpy(altBuf + ((activeBufPtrEnd - frame_delay) * 160), buffer, length);
 		}
 		else
 		{
