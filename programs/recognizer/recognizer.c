@@ -1231,14 +1231,26 @@ INT16 online(struct recosig *lpSig)
 #ifdef __USE_RESPEAKER_VAD
 	  if (rCfg.rVAD.eVadType == RV_usb)
 	  {
-		  while (respeakerVadComplete == FALSE)
+	  	  // only process pending requests for VAD value
+		  if (respeakerVadComplete == FALSE)
 		  {
+		  	  // process once non-blocking
 			  if (usb_mic_array__vad_process(context) != 0)
 			  {
 				  printf("VAD process error!\n");	
 			  }
+			  
+			  // cleanup when processing was finsihed
+			  if (respeakerVadComplete == TRUE)
+			  {
+			  	  usb_mic_array__vad_cleanup();
+			  	  // fprintf(stderr, "+");
+			  }
+			  else
+			  {
+			  	  // fprintf(stderr, "-");
+			  }
 		  }
-		  usb_mic_array__vad_cleanup();
 	  }
 #endif
 
