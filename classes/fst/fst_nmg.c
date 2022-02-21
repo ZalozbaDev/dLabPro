@@ -28,6 +28,8 @@
 #include "dlp_fst.h"
 #include "dlp_math.h"
 
+#include "alignment_fixes.h"
+
 /**
  * <p>Stores a sequence into an n-multigram.</p>
  * <h3>Note</h3>
@@ -1307,12 +1309,18 @@ INT16 CGEN_PROTECTED CFst_TrimStates(CFst* _this, INT32 nU)
 
   if(nRm>0)
   {
+  	FST_ITYPE tmpForComp;
+  	
     IFCHECK printf("\n Unit %ld: %ld out of %ld open states scheduled for removal in iteration %ld.",(long)nU,(long)nRm,(long)UD_XS(_this,nU),(long)++nIte);
 
     nFT = UD_FT(_this,nU);
     nXT = UD_XT(_this,nU);
 
-    if(nRm>UD_XS(_this,nU)*0.3){
+    // replace UD_XSmacro with its content
+    tmpForComp = readFSTITYPEFromBuffer(CData_XAddr(AS(CData,_this->ud),nU,IC_UD_XS));
+    
+    if(nRm>tmpForComp*0.3){
+    // if(nRm>UD_XS(_this,nU)*0.3){
       /* Keep only transitions that are valid */
       FST_ITYPE nTdst = nFT;
 
