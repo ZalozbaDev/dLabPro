@@ -94,13 +94,31 @@ static BOOL                 respeakerVadFrameResult[PABUF_NUM];
 #define VENDOR_ID  0x2886
 #define PRODUCT_ID 0x0018
 
-static void respeaker_vad_result_cb(int active, int frameNr)
+static void respeaker_vad_result_cb(int active, int frameNrRequest, int frameNrComplete)
 {
 	// printf ("VAD status : %d\n", active);
 	
 	respeakerVadComplete = TRUE;
 	// respeakerVadResult   = (active == 0) ? FALSE : TRUE;
-	respeakerVadFrameResult[frameNr] = (active == 0) ? FALSE : TRUE;
+	
+	if (frameNrComplete > frameNrRequest)
+	{
+		for (int i = frameNrRequest; i <= frameNrComplete; i++)
+		{
+			respeakerVadFrameResult[i] = (active == 0) ? FALSE : TRUE;
+		}
+	}
+	else
+	{
+		for (int i = frameNrRequest; i < PABUF_NUM; i++)
+		{
+			respeakerVadFrameResult[i] = (active == 0) ? FALSE : TRUE;
+		}
+		for (int i = 0; i <= frameNrComplete; i++)
+		{
+			respeakerVadFrameResult[i] = (active == 0) ? FALSE : TRUE;
+		}
+	}
 }
 #endif
 
