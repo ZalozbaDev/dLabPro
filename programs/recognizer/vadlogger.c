@@ -37,6 +37,9 @@
 // should be 10s
 #define MAX_NR_FRAMES_BUFFER 1000
 
+// copy constant from recognizer.c
+#define RECOGNIZER_PABUF_SIZE 160
+
 static INT32 frame_delay;
 
 static FLOAT32* buf1;
@@ -78,9 +81,9 @@ void vad_logging_init(INT32 nDelay)
 		}
 	}
 	
-	buf1 = (FLOAT32*) malloc(160 * sizeof(FLOAT32) * MAX_NR_FRAMES_BUFFER);
+	buf1 = (FLOAT32*) malloc(RECOGNIZER_PABUF_SIZE * sizeof(FLOAT32) * MAX_NR_FRAMES_BUFFER);
 	assert(buf1 != NULL);
-	buf2 = (FLOAT32*) malloc(160 * sizeof(FLOAT32) * MAX_NR_FRAMES_BUFFER);
+	buf2 = (FLOAT32*) malloc(RECOGNIZER_PABUF_SIZE * sizeof(FLOAT32) * MAX_NR_FRAMES_BUFFER);
 	assert(buf2 != NULL);
 	
 	activeBuf = 1;
@@ -120,22 +123,22 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 	}
 	
 	// copy this frame to current buffer
-	memcpy(currBuf + (activeBufPtrEnd * 160), buffer, length);
+	memcpy(currBuf + (activeBufPtrEnd * RECOGNIZER_PABUF_SIZE), buffer, length);
 	
 	// not active yet, check if data needs to be duplicated
-	//  0..20 = write to active buffer
-	// 21..40 = write to active buffer AND write to inactive buffer at pos 0
-	//     41 = switch buffers
+	//  0..19 = write to active buffer (20 entries)
+	// 20..39 = write to active buffer (20 entries) AND write to inactive buffer from pos 0 onwards
+	//     40 = switch buffers, discarding oldest 20 entries
 	if (vadStatus == 0)
 	{
-		if ((activeBufPtrEnd > frame_delay) && (activeBufPtrEnd <= (frame_delay * 2)))
+		if ((activeBufPtrEnd >= frame_delay) && (activeBufPtrEnd < (frame_delay * 2)))
 		{
-			memcpy(altBuf + ((activeBufPtrEnd - frame_delay) * 160), buffer, length);
+			memcpy(altBuf + ((activeBufPtrEnd - frame_delay) * RECOGNIZER_PABUF_SIZE), buffer, length);
 		}
 		else
 		{
 			// switch active buffer if history in alternative buffer is sufficient
-			if (activeBufPtrEnd > (2 * frame_delay))
+			if (activeBufPtrEnd >= (2 * frame_delay))
 			{
 				if (activeBuf == 1)
 				{
@@ -203,8 +206,8 @@ void vad_logging_frame_status(INT64 nFrame, INT16 currVADStatus)
 					currBuf = buf2;
 				}
 				
-				writeBufOffset = 160 * (activeBufFrameCtrVadOffset - activeBufFrameCtrStart);
-				writeBufSize = 160 * (activeBufPtrEnd - (activeBufFrameCtrVadOffset - activeBufFrameCtrStart));
+				writeBufOffset = RECOGNIZER_PABUF_SIZE * (activeBufFrameCtrVadOffset - activeBufFrameCtrStart);
+				writeBufSize = RECOGNIZER_PABUF_SIZE * (activeBufPtrEnd - (activeBufFrameCtrVadOffset - activeBufFrameCtrStart));
 				
 				currWritten = fwrite(currBuf + writeBufOffset, sizeof(FLOAT32), writeBufSize, outfd);
 				
