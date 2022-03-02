@@ -74,23 +74,33 @@ static VadInst* rtcVadInst;
 static BOOL rtcVadResult = FALSE;
 #endif
 
+#ifdef __USE_PORTAUDIO
+#define PABUF_SIZE    160
+#define PABUF_NUM     50
+#endif
+
+#ifdef __USE_RESPEAKER_VAD
+#endif
+
 // again dirty result passing
 #ifdef __USE_RESPEAKER_VAD
 static libusb_device_handle *devHandle; 
 static libusb_context       *context;
 static uint8_t              interfaceNumber;
 static BOOL                 respeakerVadComplete = TRUE;
-static BOOL                 respeakerVadResult = FALSE;
+static BOOL                 respeakerVadFrameResult[PABUF_NUM];
+// static BOOL                 respeakerVadResult = FALSE;
 
 #define VENDOR_ID  0x2886
 #define PRODUCT_ID 0x0018
 
-static void respeaker_vad_result_cb(int active)
+static void respeaker_vad_result_cb(int active, int frameNr)
 {
 	// printf ("VAD status : %d\n", active);
 	
 	respeakerVadComplete = TRUE;
-	respeakerVadResult   = (active == 0) ? FALSE : TRUE;
+	// respeakerVadResult   = (active == 0) ? FALSE : TRUE;
+	respeakerVadFrameResult[frameNr] = (active == 0) ? FALSE : TRUE;
 }
 #endif
 
@@ -819,7 +829,7 @@ BOOL vad_pfa_gmm(FLOAT32 *lpFPfa)
   return CData_Dfetch(rTmp.idVNld,0,CData_GetNComps(rTmp.idVNld)-1)*3<=CData_Dfetch(rTmp.idVNld,0,0);
 }
 
-BOOL vad_pfa(FLOAT32 *lpFPfa)
+BOOL vad_pfa(FLOAT32 *lpFPfa, INT32 frameNr)
 {
   /* 
   BOOL tmpPFAResult;
@@ -867,7 +877,8 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 	}
 	usb_mic_array__vad_cleanup();
 	*/
-	return respeakerVadResult;
+	// return respeakerVadResult;
+	return respeakerVadFrameResult[frameNr];
 #else
 	return FALSE;
 #endif
@@ -876,8 +887,6 @@ BOOL vad_pfa(FLOAT32 *lpFPfa)
 }
 
 #ifdef __USE_PORTAUDIO
-#define PABUF_SIZE    160
-#define PABUF_NUM     50
 #define PABUF_NXT(i)  ((i)+1<PABUF_NUM ? (i)+1 : 0)
 struct paBuf { /* Audio ring buffer */
   FLOAT32 lpDat[PABUF_SIZE*PABUF_NUM];
@@ -1078,6 +1087,12 @@ INT16 online(struct recosig *lpSig)
 		// yes, unintuitive, here 1 == good
 		if (usb_mic_array__find_open_usb_device(&devHandle, &context, &interfaceNumber, VENDOR_ID, PRODUCT_ID, 0) != 1) return NOT_EXEC;
 		respeakerVadComplete = TRUE;
+		
+		// preinitialize VAD result delay buffer
+		for (int x = 0; x < PABUF_NUM; x++) 
+		{
+			respeakerVadFrameResult[x] = FALSE;
+		}
 	}
 #endif
 
@@ -1267,7 +1282,7 @@ INT16 online(struct recosig *lpSig)
 #endif
       }
       IF_NOK(pfa(lpDat,nWlen,&lpFPfa,&nXProcess)) break;
-      bVadPfa=vad_pfa(lpFPfa);
+      bVadPfa=vad_pfa(lpFPfa, lpBuf.nRPos);
 
       /* Do final Vad decision for last frame in pre buffer */
       if (!rCfg.rVAD.bOffline){ /* VAD is on-line */
@@ -1476,7 +1491,7 @@ INT16 online(struct recosig *lpSig)
 			
 			respeakerVadComplete = FALSE;
 			
-			status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb);
+			status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb, lpBuf.nWPos);
 			
 			if (status != 0)
 			{
