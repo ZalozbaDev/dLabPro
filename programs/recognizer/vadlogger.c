@@ -140,6 +140,9 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 			// switch active buffer if history in alternative buffer is sufficient
 			if (activeBufPtrEnd >= (2 * frame_delay))
 			{
+				// don't forget to copy to alt buffer before switching buffers!
+				memcpy(altBuf + ((activeBufPtrEnd - frame_delay) * RECOGNIZER_PABUF_SIZE), buffer, length);
+			
 				if (activeBuf == 1)
 				{
 					activeBuf = 2;
