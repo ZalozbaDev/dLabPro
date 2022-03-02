@@ -102,7 +102,7 @@ static usb_vad_status          respeakerVadFrameResult[PABUF_NUM];
 
 static void respeaker_vad_result_cb(int active, int frameNrRequest, int frameNrComplete)
 {
-	// printf ("VAD status : %d\n", active);
+	// if (active != 0) printf ("VAD status (frm=%d-%d) : %d\n", frameNrRequest, frameNrComplete, active);
 	
 	respeakerVadComplete = TRUE;
 	// respeakerVadResult   = (active == 0) ? FALSE : TRUE;
@@ -924,6 +924,8 @@ BOOL vad_pfa(FLOAT32 *lpFPfa, INT32 frameNr)
 		}
 	
 		if (respeakerVadFrameResult[currFrame] == ACTIVE) result = TRUE;
+		
+		// printf("Vad read result for frame %d (taken from %d) = %s.\n", frameNr, currFrame, (result == TRUE) ? "TRUE" : "FALSE");
 	
 		return result;
 		// return respeakerVadResult;
@@ -1374,7 +1376,7 @@ INT16 online(struct recosig *lpSig)
       if (nVadSfa>0) routput(O_vad,0,"Sr:%3i",nFSfaR);
       routput(O_vad,0," max: %5i",nSigMax);
       routput(O_vad,0," LastRes: %s\n",rTmp.rRes.sLastRes);
-
+      
       /* Write VAD labels to label files */
       if(lpLog.fdLab1 && bVadPfa!=lpLog.bLab1){
         lpLog.bLab1=bVadPfa;
@@ -1548,6 +1550,7 @@ INT16 online(struct recosig *lpSig)
 				respeakerVadFrameResult[frame] = PENDING;
 				frame = PABUF_NXT(frame);
 			}
+			// printf("New VAD request: %d.\n", lpBuf.nWPos);
 			
 			status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb, lpBuf.nWPos);
 			
