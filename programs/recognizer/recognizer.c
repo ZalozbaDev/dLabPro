@@ -76,7 +76,7 @@ static BOOL rtcVadResult = FALSE;
 
 #ifdef __USE_PORTAUDIO
 #define PABUF_SIZE    160
-#define PABUF_NUM     500
+#define PABUF_NUM     50
 #endif
 
 #ifdef __USE_RESPEAKER_VAD
@@ -1369,7 +1369,6 @@ INT16 online(struct recosig *lpSig)
 		}
 #endif		
       }
-      /*
       routput(O_vad,0,"pF%4i: V:%i Sw:%3i => VS:%i ViS:%2i VP:%2i VC:%2i => sF%4i V:%i ",
         nFrame,bVadPfa,nFSfaW,
         lpVadState.nState,lpVadState.nInState,lpVadState.nPre,lpVadState.nChange,
@@ -1377,7 +1376,6 @@ INT16 online(struct recosig *lpSig)
       if (nVadSfa>0) routput(O_vad,0,"Sr:%3i",nFSfaR);
       routput(O_vad,0," max: %5i",nSigMax);
       routput(O_vad,0," LastRes: %s\n",rTmp.rRes.sLastRes);
-      */
       
       /* Write VAD labels to label files */
       if(lpLog.fdLab1 && bVadPfa!=lpLog.bLab1){
