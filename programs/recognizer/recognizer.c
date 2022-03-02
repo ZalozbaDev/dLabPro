@@ -1253,7 +1253,7 @@ INT16 online(struct recosig *lpSig)
 		  if (respeakerVadComplete == FALSE)
 		  {
 		  	  // process once non-blocking
-			  if (usb_mic_array__vad_process(context) != 0)
+			  if (usb_mic_array__vad_process(context, lpBuf.nWPos) != 0)
 			  {
 				  printf("VAD process error!\n");	
 			  }
