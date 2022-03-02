@@ -88,7 +88,13 @@ static libusb_device_handle *devHandle;
 static libusb_context       *context;
 static uint8_t              interfaceNumber;
 static BOOL                 respeakerVadComplete = TRUE;
-static BOOL                 respeakerVadFrameResult[PABUF_NUM];
+typedef enum  
+{
+	PENDING, 
+	ACTIVE, 
+	INACTIVE
+} usb_vad_status;
+static usb_vad_status          respeakerVadFrameResult[PABUF_NUM];
 // static BOOL                 respeakerVadResult = FALSE;
 
 #define VENDOR_ID  0x2886
@@ -105,18 +111,18 @@ static void respeaker_vad_result_cb(int active, int frameNrRequest, int frameNrC
 	{
 		for (int i = frameNrRequest; i <= frameNrComplete; i++)
 		{
-			respeakerVadFrameResult[i] = (active == 0) ? FALSE : TRUE;
+			respeakerVadFrameResult[i] = (active == 0) ? INACTIVE : ACTIVE;
 		}
 	}
 	else
 	{
 		for (int i = frameNrRequest; i < PABUF_NUM; i++)
 		{
-			respeakerVadFrameResult[i] = (active == 0) ? FALSE : TRUE;
+			respeakerVadFrameResult[i] = (active == 0) ? INACTIVE : ACTIVE;
 		}
 		for (int i = 0; i <= frameNrComplete; i++)
 		{
-			respeakerVadFrameResult[i] = (active == 0) ? FALSE : TRUE;
+			respeakerVadFrameResult[i] = (active == 0) ? INACTIVE : ACTIVE;
 		}
 	}
 }
@@ -884,6 +890,7 @@ BOOL vad_pfa(FLOAT32 *lpFPfa, INT32 frameNr)
 	return FALSE;
 #endif
   case RV_usb:
+  	  {
 #ifdef __USE_RESPEAKER_VAD
 	/*
 	while (respeakerVadComplete == FALSE)
@@ -895,11 +902,35 @@ BOOL vad_pfa(FLOAT32 *lpFPfa, INT32 frameNr)
 	}
 	usb_mic_array__vad_cleanup();
 	*/
-	// return respeakerVadResult;
-	return respeakerVadFrameResult[frameNr];
+		INT32 currFrame;
+		BOOL result;
+	
+		result = FALSE;
+		currFrame = frameNr;
+	
+		// look back some frames for the latest valid VAD status
+		for (int i = 0; i < 5; i++)
+		{
+			if (respeakerVadFrameResult[currFrame] != PENDING) break;
+		
+			if (currFrame == 0)
+			{
+				currFrame = (PABUF_NUM - 1);
+			}
+			else
+			{
+				currFrame--;	
+			}
+		}
+	
+		if (respeakerVadFrameResult[currFrame] == ACTIVE) result = TRUE;
+	
+		return result;
+		// return respeakerVadResult;
 #else
-	return FALSE;
+		return FALSE;
 #endif
+	  }
   }
   return TRUE;
 }
@@ -1109,7 +1140,7 @@ INT16 online(struct recosig *lpSig)
 		// preinitialize VAD result delay buffer
 		for (int x = 0; x < PABUF_NUM; x++) 
 		{
-			respeakerVadFrameResult[x] = FALSE;
+			respeakerVadFrameResult[x] = PENDING;
 		}
 	}
 #endif
@@ -1506,8 +1537,17 @@ INT16 online(struct recosig *lpSig)
 		if (respeakerVadComplete == TRUE)
 		{
 			int status;
+			INT32 frame;
 			
 			respeakerVadComplete = FALSE;
+			
+			// clear VAD status in advance because request can take a while 
+			frame = lpBuf.nWPos;
+			for (int i = 0; i < 10; i++)
+			{
+				respeakerVadFrameResult[frame] = PENDING;
+				frame = PABUF_NXT(frame);
+			}
 			
 			status = usb_mic_array__vad_request(devHandle, respeaker_vad_result_cb, lpBuf.nWPos);
 			
