@@ -183,7 +183,7 @@ void vad_logging_frame_status(INT64 nFrame, INT16 currVADStatus)
 			
 			printf("VAD buffer: active=%d start=%ld vadstart=%ld size=%ld\n", activeBuf, activeBufFrameCtrStart, activeBufFrameCtrVadOffset, activeBufPtrEnd);
 			
-			assert(activeBufFrameCtrVadOffset > activeBufFrameCtrStart);
+			assert(activeBufFrameCtrVadOffset >= activeBufFrameCtrStart);
 			
 			filenamepart[0] = 0;
 			snprintf(filenamepart, 100, "%08u-%08u", activeBufFrameCtrVadOffset, activeBufFrameCtrStart + activeBufPtrEnd);
