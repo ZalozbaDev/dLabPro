@@ -1316,11 +1316,11 @@ INT16 CGEN_PROTECTED CFst_TrimStates(CFst* _this, INT32 nU)
     nFT = UD_FT(_this,nU);
     nXT = UD_XT(_this,nU);
 
-    // replace UD_XSmacro with its content
+    /* replace UD_XSmacro with its content */
     tmpForComp = readFSTITYPEFromBuffer(CData_XAddr(AS(CData,_this->ud),nU,IC_UD_XS));
     
     if(nRm>tmpForComp*0.3){
-    // if(nRm>UD_XS(_this,nU)*0.3){
+    /* if(nRm>UD_XS(_this,nU)*0.3){ */
       /* Keep only transitions that are valid */
       FST_ITYPE nTdst = nFT;
 
