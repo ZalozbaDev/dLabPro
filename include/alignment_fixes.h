@@ -115,6 +115,19 @@ __inline__ static FST_STYPE readFSTSTYPEFromBuffer(const void* lpBuffer)
 #endif
 }
 
+__inline__ static FST_ITYPE readFSTITYPEFromBuffer(const void* lpBuffer)
+{
+#ifdef ARCHITECTURE_ARM
+	FST_ITYPE tmp;
+	
+	memcpy(&tmp, lpBuffer, sizeof(FST_ITYPE));
+	
+	return tmp;
+#else
+	return *(FST_ITYPE*)lpBuffer;
+#endif
+}
+
 __inline__ static void writeFSTWTYPEToBuffer(const FST_WTYPE data, void* lpBuffer)
 {
 #ifdef ARCHITECTURE_ARM
