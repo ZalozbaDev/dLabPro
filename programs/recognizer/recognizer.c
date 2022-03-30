@@ -74,9 +74,10 @@ static VadInst* rtcVadInst;
 static BOOL rtcVadResult = FALSE;
 #endif
 
+// 100 buffers a 160 samples == 1 second at 16kHz 1 channel
 #ifdef __USE_PORTAUDIO
 #define PABUF_SIZE    160
-#define PABUF_NUM     50
+#define PABUF_NUM     100
 #endif
 
 #ifdef __USE_RESPEAKER_VAD
@@ -515,8 +516,9 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     	routput(O_cmd,0,"++++++++++++++++++++++++++++++++++++++++++++++ res: %s ",rTmp.rRes.sLastRes);
     	char reaction_command[256];
     	reaction_command[0] = 0;
-    	strcat(reaction_command, "./reaction.sh ");
+    	strcat(reaction_command, "./reaction.sh '");
     	strcat(reaction_command, rTmp.rRes.sLastRes);
+    	strcat(reaction_command, "'");
     	system(reaction_command);
     }
     mute_for_reaction = FALSE;
