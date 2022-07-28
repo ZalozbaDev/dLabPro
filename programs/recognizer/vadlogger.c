@@ -34,8 +34,8 @@
 
 #define LOG_DIRECTORY "vad_logs/"
 
-// should be 10s
-#define MAX_NR_FRAMES_BUFFER 1000
+// should be 50s
+#define MAX_NR_FRAMES_BUFFER 5000
 
 // copy constant from recognizer.c
 #define RECOGNIZER_PABUF_SIZE 160
@@ -114,6 +114,7 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 		altBuf  = buf1;
 	}
 	
+	// assert when trying to write past the allocated buffer (VAD issue, constant noise?)
 	assert(activeBufPtrEnd < (MAX_NR_FRAMES_BUFFER - 1));
 	
 	// remember start frame if starting to fill new buffer
@@ -163,7 +164,7 @@ void vad_logging_add_frame(INT64 nFrame, FLOAT32 *buffer, UINT32 length)
 
 void vad_logging_frame_status(INT64 nFrame, INT16 currVADStatus)
 {
-	// printf("Frame %ld VAD %d.\n", nFrame, currVADStatus);
+	// printf("Frame %ld VAD %d ptrEnd %d.\n", nFrame, currVADStatus, activeBufPtrEnd);
 	
 	if (currVADStatus == 1)
 	{
@@ -183,7 +184,14 @@ void vad_logging_frame_status(INT64 nFrame, INT16 currVADStatus)
 			
 			printf("VAD buffer: active=%d start=%ld vadstart=%ld size=%ld\n", activeBuf, activeBufFrameCtrStart, activeBufFrameCtrVadOffset, activeBufPtrEnd);
 			
-			assert(activeBufFrameCtrVadOffset >= activeBufFrameCtrStart);
+			// check to assure VAD does not start before buffer
+			// assert(activeBufFrameCtrVadOffset >= activeBufFrameCtrStart);
+			// HACK: correct instead of assert
+			if (activeBufFrameCtrStart > activeBufFrameCtrVadOffset)
+			{
+				printf("HACK applied to correct strange VAD offset!\n");
+				activeBufFrameCtrVadOffset = activeBufFrameCtrStart;
+			}
 			
 			filenamepart[0] = 0;
 			snprintf(filenamepart, 100, "%08u-%08u", activeBufFrameCtrVadOffset, activeBufFrameCtrStart + activeBufPtrEnd);

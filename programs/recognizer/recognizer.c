@@ -1868,4 +1868,10 @@ char* recognizer_final_result(void)
 	return finalResult;	
 }
 
+void recognizer_flush_results(void)
+{
+	partialResult[0] = 0;
+	finalResult[0]   = 0;
+}
+
 #endif

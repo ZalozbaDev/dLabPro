@@ -47,6 +47,8 @@ char* recognizer_partial_result(void);
 
 char* recognizer_final_result(void);
 
+void recognizer_flush_results(void);
+
 #ifdef __cplusplus
 }
 #endif
