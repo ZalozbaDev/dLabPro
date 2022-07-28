@@ -79,10 +79,10 @@ static VadInst* rtcVadInst;
 static BOOL rtcVadResult = FALSE;
 #endif
 
-// 100 buffers a 160 samples == 1 second at 16kHz 1 channel
+// 2000 buffers a 160 samples == 20 seconds at 16kHz 1 channel
 #ifdef __USE_PORTAUDIO
 #define PABUF_SIZE    160
-#define PABUF_NUM     100
+#define PABUF_NUM     2000
 #endif
 
 #ifdef __USE_VOSK_SERVER
