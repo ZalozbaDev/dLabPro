@@ -85,6 +85,14 @@ static BOOL rtcVadResult = FALSE;
 #define PABUF_NUM     100
 #endif
 
+#ifdef __USE_VOSK_SERVER
+static int loopIdleCounter = 0;
+static int loopBusyCounter = 0;
+static int publicVadStatus = 0;
+static char partialResult[5000] = {0};
+static char finalResult[5000] = {0};
+#endif
+
 #ifdef __USE_RESPEAKER_VAD
 #endif
 
@@ -526,6 +534,10 @@ void confidence(CFst* itDC, CFst* itDCr, const char *sLab)
     	strcat(reaction_command, "'");
     	system(reaction_command);
     }
+#ifdef __USE_VOSK_SERVER
+	finalResult[0] = 0;
+	strcat(finalResult, rTmp.rRes.sLastRes);
+#endif    
     mute_for_reaction = FALSE;
     if(sLab) routput(O_cmd,0,"cor: %i ",nRCor);
     if(rCfg.rRej.eTyp!=RR_off) routput(O_cmd,0,"acc: %i",nRAcc);
@@ -1460,10 +1472,20 @@ INT16 online(struct recosig *lpSig)
           if(nCTos>=0 && nCTis>=0 && !CData_IsEmpty(AS(CData,itDC->os))){
             INT32 nLen=0;
             routput(O_sta,1,"liveres: ");
+#ifdef __USE_VOSK_SERVER
+			partialResult[0] = 0;
+#endif
             for(nT=0;nT<CData_GetNRecs(AS(CData,itDC->td));nT++){
               INT32 nTos=CData_Dfetch(AS(CData,itDC->td),nT,nCTos);
               INT32 nTis=CData_Dfetch(AS(CData,itDC->td),nT,nCTis);
-              if(nTos>=0) routput(O_sta,0,"%s",CData_Sfetch(AS(CData,itDC->os),nTos,0));
+              if(nTos>=0) 
+              {
+#ifdef __USE_VOSK_SERVER
+				  strcat(partialResult, CData_Sfetch(AS(CData,itDC->os),nTos,0));
+				  strcat(partialResult, " ");
+#endif
+              	  routput(O_sta,0,"%s",CData_Sfetch(AS(CData,itDC->os),nTos,0));
+              }
               if(nTis>=0) nLen++;
             }
             if(rCfg.rSearch.bPermanent){
@@ -1473,10 +1495,20 @@ INT16 online(struct recosig *lpSig)
           IDESTROYFST(itDC);
         }
       }
+#ifdef __USE_VOSK_SERVER
+	  loopBusyCounter++;
+	  publicVadStatus = (nVadSfa > 0) ? 1 : 0;
+#endif
     }
     /* Wait and go on */
 #if !defined __TMS && defined __USE_PORTAUDIO
-    else dlp_sleep(5);
+    else 
+    {
+#ifdef __USE_VOSK_SERVER
+		loopIdleCounter++;
+#endif
+    	dlp_sleep(5);
+    }
 #endif
 
     /* End of feature vector collection reached ? */
@@ -1802,7 +1834,36 @@ end:
   return 0;
 }
 
+#ifdef __USE_VOSK_SERVER
+
 void recognizer_exit(void)
 {
 	rCfg.bExit = TRUE;
 }
+
+int recognizer_get_idle_counter(void)
+{
+	return loopIdleCounter;
+}
+
+int recognizer_get_busy_counter(void)
+{
+	return loopBusyCounter;
+}
+
+int recognizer_get_vad_status(void)
+{
+	return publicVadStatus;	
+}
+
+char* recognizer_partial_result(void)
+{
+	return partialResult;	
+}
+
+char* recognizer_final_result(void)
+{
+	return finalResult;	
+}
+
+#endif

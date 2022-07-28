@@ -79,12 +79,12 @@ ifneq ($(findstring portaudio,$(LIBS_SYS)),)
   ## Add portaudio library
   ifeq ($(PA_AVAILABLE),yes)
     CFLAGS += -D__USE_PORTAUDIO -I$(PA_DIR)
-    ifeq ($(shell test -f $(PA_DIR)/LFLAGS && echo yes || echo no),yes)
-      LFLAGS += $(PA_DIR)/$(shell cat $(PA_DIR)/LFLAGS)
-    endif
-    ifeq ($(shell test -f $(PA_DIR)/LFLAGS.sh && echo yes || echo no),yes)
-      LFLAGS += $(shell sh $(PA_DIR)/LFLAGS.sh $(PA_DIR))
-    endif
+#    ifeq ($(shell test -f $(PA_DIR)/LFLAGS && echo yes || echo no),yes)
+#      LFLAGS += $(PA_DIR)/$(shell cat $(PA_DIR)/LFLAGS)
+#    endif
+#    ifeq ($(shell test -f $(PA_DIR)/LFLAGS.sh && echo yes || echo no),yes)
+#      LFLAGS += $(shell sh $(PA_DIR)/LFLAGS.sh $(PA_DIR))
+#    endif
     ifneq ($(findstring mingw,$(OS)),)
 
 $(PROJECT): $(BIN_PATH)/portaudio_x86.dll

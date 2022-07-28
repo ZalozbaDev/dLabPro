@@ -26,6 +26,9 @@
 #ifndef _RECOGNIZER_VOSK_WRAPPER_H
 #define _RECOGNIZER_VOSK_WRAPPER_H
 
+// should create an error if different, otherwise warning only?
+#define PABUF_SIZE    160
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,6 +36,16 @@ extern "C" {
 int recognizer_main(int argc, char** argv);
 
 void recognizer_exit(void);
+
+int recognizer_get_idle_counter(void);
+
+int recognizer_get_busy_counter(void);
+
+int recognizer_get_vad_status(void);
+
+char* recognizer_partial_result(void);
+
+char* recognizer_final_result(void);
 
 #ifdef __cplusplus
 }
