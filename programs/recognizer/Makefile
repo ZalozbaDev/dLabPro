@@ -63,7 +63,7 @@ LIBS      = \
 	../../../usb_4_mic_array/cpp/libusb_mic_array.a -lusb-1.0
 	
 LIBS_DEPR = 
-LIBS_SYS = portaudio
+LIBS_SYS = 
 
 cfgdef.c: recognizer.cfg
 	echo 'const char *cfgdef = "\' >$@
