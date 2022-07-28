@@ -28,8 +28,9 @@
 #include "dlp_math.h"
 
 #define __USE_WEBRTC_VAD
-#define __USE_RESPEAKER_VAD
-#define __USE_VAD_LOGGING
+// #define __USE_RESPEAKER_VAD
+// #define __USE_VAD_LOGGING
+#define __USE_VOSK_SERVER
 
 #ifdef __USE_WEBRTC_VAD
 #include "../../../webrtc-audio-processing/webrtc/common_audio/vad/include/webrtc_vad.h"
@@ -37,6 +38,10 @@
 
 #ifdef __USE_RESPEAKER_VAD
 #include "../../../usb_4_mic_array/cpp/tuning.h"
+#endif
+
+#ifdef __USE_VOSK_SERVER
+#include "recognizer_vosk_wrapper.h"
 #endif
 
 #ifdef __USE_PORTAUDIO
@@ -1732,11 +1737,15 @@ err:
   routput(O_sta,1,"file read error (%s)\n",errstr);
 }
 
+#ifdef __USE_VOSK_SERVER
+int recognizer_main(int argc, char** argv)
+#else
 int main(int argc, char** argv)                                               /* Main function */
 #ifdef __TMS
 { return 0; }
 char* main_argv[]={"","-b","-t","-debug","0","recognizer_data.bin",NULL};
 INT32 main_proc(INT32 argc, char** argv)                                               /* Main function */
+#endif
 #endif
 {
 
@@ -1791,4 +1800,9 @@ end:
 #endif
 
   return 0;
+}
+
+void recognizer_exit(void)
+{
+	rCfg.bExit = TRUE;
 }

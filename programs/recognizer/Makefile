@@ -61,6 +61,7 @@ LIBS      = \
 	$(EXT_LPTH)/kazlib$(LET) $(LPOST)     \
 	../../../webrtc-audio-processing/build/webrtc/common_audio/libcommon_audio.a \
 	../../../usb_4_mic_array/cpp/libusb_mic_array.a -lusb-1.0
+	
 LIBS_DEPR = 
 LIBS_SYS = portaudio
 
@@ -71,3 +72,4 @@ cfgdef.c: recognizer.cfg
 
 include $(DLABPRO_HOME)/make/program.mk
 
+LFLAGS += -L../../../dLabPro_vosk_api_wrapper -lasr-server
