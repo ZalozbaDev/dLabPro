@@ -1841,6 +1841,7 @@ end:
 
 const char* epsilonSequence = "<epsilon>";
 
+// currently only filters out the "epsilon" sequence 
 static void filterResultString(char* inputString)
 {
 	char* tmp;
@@ -1856,11 +1857,19 @@ static void filterResultString(char* inputString)
 	{
 		while (tmp != NULL)
 		{
+			// copy string up to "sequence-to-filter" to new string
 			memset(buf, 0, sizeof(buf));
 			memcpy(buf, inputStringPtr, (tmp - inputStringPtr));
 			strcat(filteredResult, buf);
 			
+			// skip the "sequence-to-filter"
 			inputStringPtr = tmp + sizeof(epsilonSequence) + 1;
+			
+			// introduce space if word starts immediately after the filtered sequence
+			if (inputStringPtr[0] != ' ')
+			{
+				strcat(filteredResult, " ");
+			}
 			
 			tmp = strstr(inputStringPtr, epsilonSequence);
 		}
