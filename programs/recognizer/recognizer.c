@@ -91,6 +91,7 @@ static int loopBusyCounter = 0;
 static int publicVadStatus = 0;
 static char partialResult[5000] = {0};
 static char finalResult[5000] = {0};
+static char filteredResult[5000] = {0};
 #endif
 
 #ifdef __USE_RESPEAKER_VAD
@@ -1838,6 +1839,38 @@ end:
 
 #ifdef __USE_VOSK_SERVER
 
+const char* epsilonSequence = "<epsilon>";
+
+static void filterResultString(char* inputString)
+{
+	char* tmp;
+	char buf[1000];
+	
+	char* inputStringPtr = inputString;
+	
+	filteredResult[0] = 0;
+	
+	tmp = strstr(inputStringPtr, epsilonSequence);
+	
+	if (tmp != NULL)
+	{
+		while (tmp != NULL)
+		{
+			memset(buf, 0, sizeof(buf));
+			memcpy(buf, inputStringPtr, (tmp - inputStringPtr));
+			strcat(filteredResult, buf);
+			
+			inputStringPtr = tmp + sizeof(epsilonSequence) + 1;
+			
+			tmp = strstr(inputStringPtr, epsilonSequence);
+		}
+	}
+	else
+	{
+		strcat(filteredResult, inputString);
+	}
+}
+
 void recognizer_exit(void)
 {
 	rCfg.bExit = TRUE;
@@ -1860,12 +1893,14 @@ int recognizer_get_vad_status(void)
 
 char* recognizer_partial_result(void)
 {
-	return partialResult;	
+	filterResultString(partialResult);
+	return filteredResult;	
 }
 
 char* recognizer_final_result(void)
 {
-	return finalResult;	
+	filterResultString(finalResult);
+	return filteredResult;	
 }
 
 void recognizer_flush_results(void)
