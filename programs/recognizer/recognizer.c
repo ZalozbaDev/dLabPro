@@ -1870,9 +1870,12 @@ static void filterWordClassPercent(char* inputString)
 			memcpy(innerBuf, inputStringPtr, (tmpStart - inputStringPtr));
 			strcat(filteredResultWordClass, innerBuf);
 			
+			// add one space distance
+			strcat(filteredResultWordClass, " ");
+			
 			// cut out the "inner string" between the "PERCENT" tags 
 			memset(innerBuf, 0, sizeof(innerBuf));
-			innerStart = tmpStart + sizeof(wordClassPercentStart);
+			innerStart = tmpStart + sizeof(wordClassPercentStart) + 1;
 			innerLength = tmpEnd - innerStart;
 			memcpy(innerBuf, innerStart, innerLength);
 			
@@ -1901,6 +1904,9 @@ static void filterWordClassPercent(char* inputString)
 				pclose(pp);
 			}
 
+			// add one space distance
+			strcat(filteredResultWordClass, " ");
+			
 			// skip past the end of the closing "PERCENT" tag
 			inputStringPtr = tmpEnd + sizeof(wordClassPercentEnd) + 1;
 			
