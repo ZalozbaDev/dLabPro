@@ -1895,8 +1895,19 @@ static void filterWordClassPercent(char* inputString)
 				while (1) {
 					char *line;
 					char retBuf[1000];
+					int lineLen;
+					
+					memset(retBuf, 0, sizeof(retBuf));
+					
 					line = fgets(retBuf, sizeof retBuf, pp);
 					if (line == NULL) break;
+					
+					// remove the trailing newline
+					lineLen = strlen(line);
+					if (line[lineLen -1] == "\n")
+					{
+						line[lineLen -1] = 0;
+					}
 					
 					printf("Adding line '%s' to result!\n", line);
 					strcat(filteredResultWordClass, line);
