@@ -1875,7 +1875,7 @@ static void filterWordClassPercent(char* inputString)
 			
 			// cut out the "inner string" between the "PERCENT" tags 
 			memset(innerBuf, 0, sizeof(innerBuf));
-			innerStart = tmpStart + sizeof(wordClassPercentStart) + 1;
+			innerStart = tmpStart + strlen(wordClassPercentStart) + 1;
 			innerLength = tmpEnd - innerStart;
 			memcpy(innerBuf, innerStart, innerLength);
 			
@@ -1920,7 +1920,7 @@ static void filterWordClassPercent(char* inputString)
 			strcat(filteredResultWordClass, " ");
 			
 			// skip past the end of the closing "PERCENT" tag
-			inputStringPtr = tmpEnd + sizeof(wordClassPercentEnd) + 1;
+			inputStringPtr = tmpEnd + strlen(wordClassPercentEnd) + 1;
 			
 			tmpStart = strstr(inputStringPtr, wordClassPercentStart);
 			tmpEnd   = strstr(inputStringPtr, wordClassPercentEnd);
@@ -1962,7 +1962,7 @@ static void filterResultString(char* inputString)
 			strcat(filteredResult, buf);
 			
 			// skip the "sequence-to-filter"
-			inputStringPtr = tmp + sizeof(epsilonSequence) + 1;
+			inputStringPtr = tmp + strlen(epsilonSequence) + 1;
 			
 			// introduce space if word starts immediately after the filtered sequence
 			if (inputStringPtr[0] != ' ')
