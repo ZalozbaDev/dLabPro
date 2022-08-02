@@ -1904,8 +1904,8 @@ static void filterWordClassPercent(char* inputString)
 					
 					// remove the trailing newline
 					lineLen = strlen(line);
-					printf("lineLen=%d, checking character '%c'.\n", lineLen, line[lineLen - 1]);
-					if (line[lineLen - 1] == "\n")
+					// printf("lineLen=%d, checking character '%c'.\n", lineLen, line[lineLen - 1]);
+					if (line[lineLen - 1] == '\n')
 					{
 						line[lineLen - 1] = 0;
 					}
