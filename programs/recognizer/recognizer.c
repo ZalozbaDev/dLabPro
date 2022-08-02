@@ -92,6 +92,7 @@ static int publicVadStatus = 0;
 static char partialResult[5000] = {0};
 static char finalResult[5000] = {0};
 static char filteredResult[5000] = {0};
+static char filteredResultWordClass[5000] = {0};
 #endif
 
 #ifdef __USE_RESPEAKER_VAD
@@ -1839,6 +1840,86 @@ end:
 
 #ifdef __USE_VOSK_SERVER
 
+const char* wordClassPercentStart = "<PERCENT>";
+const char* wordClassPercentEnd   = "</PERCENT>";
+
+static void filterWordClassPercent(char* inputString)
+{
+	char* tmpStart;
+	char* tmpEnd;
+
+	char* inputStringPtr = inputString;
+	
+	filteredResultWordClass[0] = 0;
+	
+	tmpStart = strstr(inputStringPtr, wordClassPercentStart);
+	tmpEnd   = strstr(inputStringPtr, wordClassPercentEnd);
+	
+	if ((tmpStart != NULL) && (tmpEnd != NULL))
+	{
+		while((tmpStart != NULL) && (tmpEnd != NULL))
+		{
+			char* innerStart;
+			size_t innerLength;
+			FILE *pp;
+			char innerBuf[1000];
+			char cmdBuf[1000];
+			
+			// copy string up to "sequence-to-filter" to new string
+			memset(innerBuf, 0, sizeof(innerBuf));
+			memcpy(innerBuf, inputStringPtr, (tmpStart - inputStringPtr));
+			strcat(filteredResultWordClass, innerBuf);
+			
+			// cut out the "inner string" between the "PERCENT" tags 
+			memset(innerBuf, 0, sizeof(innerBuf));
+			innerStart = tmpStart + sizeof(wordClassPercentStart);
+			innerLength = tmpEnd - innerStart;
+			memcpy(innerBuf, innerStart, innerLength);
+			
+			printf("Inner percentage string: %s.\n", innerBuf);
+			
+			// assemble bash command to run arithmetics on the inner string
+			memset(cmdBuf, 0, sizeof(cmdBuf));
+			strcat(cmdBuf, "/bin/bash -c \"echo $((");
+			strcat(cmdBuf, innerBuf);
+			strcat(cmdBuf, "))\"");
+			
+			printf("Command to run through popen(): %s.\n", cmdBuf);
+			
+			// parse result
+			pp = popen(cmdBuf, "r");
+			if (pp != NULL) {
+				while (1) {
+					char *line;
+					char retBuf[1000];
+					line = fgets(retBuf, sizeof retBuf, pp);
+					if (line == NULL) break;
+					
+					printf("Adding line '%s' to result!\n", line);
+					strcat(filteredResultWordClass, line);
+				}
+				pclose(pp);
+			}
+
+			// skip past the end of the closing "PERCENT" tag
+			inputStringPtr = tmpEnd + sizeof(wordClassPercentEnd) + 1;
+			
+			tmpStart = strstr(inputStringPtr, wordClassPercentStart);
+			tmpEnd   = strstr(inputStringPtr, wordClassPercentEnd);
+		}
+		
+		// copy a possible remainder
+		if (inputStringPtr < (inputString + strlen(inputString)))
+		{
+			strcat(filteredResultWordClass, inputStringPtr); 
+		}
+	}
+	else
+	{
+		strcat(filteredResultWordClass, inputString);
+	}
+}
+
 const char* epsilonSequence = "<epsilon>";
 
 // currently only filters out the "epsilon" sequence 
@@ -1873,6 +1954,12 @@ static void filterResultString(char* inputString)
 			
 			tmp = strstr(inputStringPtr, epsilonSequence);
 		}
+		
+		// copy a possible remainder
+		if (inputStringPtr < (inputString + strlen(inputString)))
+		{
+			strcat(filteredResult, inputStringPtr); 
+		}
 	}
 	else
 	{
@@ -1903,13 +1990,15 @@ int recognizer_get_vad_status(void)
 char* recognizer_partial_result(void)
 {
 	filterResultString(partialResult);
-	return filteredResult;	
+	filterWordClassPercent(filteredResult);
+	return filteredResultWordClass;	
 }
 
 char* recognizer_final_result(void)
 {
 	filterResultString(finalResult);
-	return filteredResult;	
+	filterWordClassPercent(filteredResult);
+	return filteredResultWordClass;	
 }
 
 void recognizer_flush_results(void)
