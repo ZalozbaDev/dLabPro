@@ -982,8 +982,12 @@ int paCallback( const void *inputBuffer, void *outputBuffer, unsigned long frame
 	}
 #endif
 
-	// always log on overflow
-  	fprintf(stderr, "DROP! ");
+	// log on overflow during recognition
+	// overflow during reaction is intended
+	if (mute_for_reaction == FALSE)
+	{
+		fprintf(stderr, ">!<");
+	}
   	// fprintf(stderr, "%s\t", (mute_for_reaction == TRUE) ? "MMM" : "FFF");
   	
     lpBuf->nSkip++; 
