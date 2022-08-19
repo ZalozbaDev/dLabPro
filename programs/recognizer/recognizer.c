@@ -1105,6 +1105,8 @@ INT16 online(struct recosig *lpSig)
 		rtcVadInst = WebRtcVad_Create();
 		if (WebRtcVad_Init(rtcVadInst) != 0) return NOT_EXEC;
 		if (WebRtcVad_set_mode(rtcVadInst, rCfg.rVAD.nWebRTCAggr) != 0) return NOT_EXEC;
+		
+		printf("Set WebRTC VAD aggressiveness to %d.\n", rCfg.rVAD.nWebRTCAggr);
 	}
 #endif
 
