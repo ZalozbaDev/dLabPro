@@ -81,6 +81,10 @@ else
     else ifneq ($(and $(findstring -linux,$(OS)),$(findstring arm-,$(OS))),)
       OS = lin32
       ARCHITECTURE=ARM
+    else ifneq ($(findstring arm-linux-gnueabihf,$(OS)),)
+      OS = lin32
+      ARCHITECTURE=ARM
+    else ifneq ($(findstring mingw32,$(OS)),)
     # CLANG on ARM (Raspbian)
     else ifneq ($(and $(findstring -linux-gnueabihf,$(OS)),$(findstring armv6k-,$(OS))),)
       OS = lin32
