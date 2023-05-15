@@ -41,6 +41,12 @@
 
 #endif
 
+/******************************************************
+**
+** special handling of FLOAT64 that are read/written unaligned
+**
+*******************************************************/
+
 __inline__ static FLOAT64 convertINT32FromBuffer(const void* lpBuffer)
 {
 #ifdef ARCHITECTURE_ARM
@@ -67,6 +73,19 @@ __inline__ static FLOAT64 convertUINT64FromBuffer(const void* lpBuffer)
 #endif
 }
 
+__inline__ static FLOAT64 convertINT64FromBuffer(const void* lpBuffer)
+{
+#ifdef ARCHITECTURE_ARM
+	INT64 tmp;
+	
+	memcpy(&tmp, lpBuffer, sizeof(INT64));
+	
+	return (FLOAT64) tmp;
+#else
+	return (FLOAT64) (*(INT64*)lpBuffer);
+#endif
+}
+
 __inline__ static void writeFLOAT64ToBuffer(const FLOAT64 val, void* lpBuffer)
 {
 #ifdef ARCHITECTURE_ARM
@@ -88,6 +107,27 @@ __inline__ static FLOAT64 readFLOAT64ArrayIndexFromBuffer(const void* lpBuffer, 
 	return ((FLOAT64*)lpBuffer)[nArrIdx];
 #endif
 }
+
+/******************************************************
+**
+** special handling of INT64 that are read/written unaligned
+**
+*******************************************************/
+
+__inline__ static void writeINT64ToBuffer(const INT64 val, void* lpBuffer)
+{
+#ifdef ARCHITECTURE_ARM
+	memcpy(lpBuffer, &val, sizeof(INT64));
+#else
+	*(INT64*)lpBuffer = val;
+#endif
+}
+
+/******************************************************
+**
+** special handling of several FST_?TYPEs which are read/written unaligned
+**
+*******************************************************/
 
 __inline__ static FST_WTYPE readFSTWTYPEFromBuffer(const void* lpBuffer)
 {

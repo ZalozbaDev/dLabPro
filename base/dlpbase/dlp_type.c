@@ -417,7 +417,13 @@ INT16 dlp_store(COMPLEX64 nVal, void* lpBuffer, INT16 nTypeCode)
     case T_UINT   : *(   UINT32*)lpBuffer = ( UINT32)CLIP(nVal.x,T_UINT  ); return O_K;
     case T_INT    : *(    INT32*)lpBuffer = (  INT32)CLIP(nVal.x,T_INT   ); return O_K;
     case T_ULONG  : *(   UINT64*)lpBuffer = ( UINT64)CLIP(nVal.x,T_ULONG ); return O_K;
-    case T_LONG   : *(    INT64*)lpBuffer = (  INT64)CLIP(nVal.x,T_LONG  ); return O_K;
+    case T_LONG   : 
+    	{
+    		/* *(    INT64*)lpBuffer = (  INT64)CLIP(nVal.x,T_LONG  ); return O_K; */
+    		INT64 tmp = (INT64)CLIP(nVal.x,T_LONG);
+    		writeINT64ToBuffer(tmp, lpBuffer);
+    		return O_K;
+    	}
     case T_FLOAT  : *(  FLOAT32*)lpBuffer = (FLOAT32)CLIP(nVal.x,T_FLOAT ); return O_K;
     case T_DOUBLE :
     	{
@@ -465,7 +471,11 @@ COMPLEX64 dlp_fetch(const void* lpBuffer, INT16 nTypeCode)
     		/* return (COMPLEX64){*(   UINT64*)lpBuffer,0.}; */ 
     		return (COMPLEX64){convertUINT64FromBuffer(lpBuffer) ,0.};
     	}
-    case T_LONG   : { return (COMPLEX64){*(    INT64*)lpBuffer,0.};  }
+    case T_LONG   : 
+    	{ 
+    		// return (COMPLEX64){*(    INT64*)lpBuffer,0.};
+    		return (COMPLEX64){convertINT64FromBuffer(lpBuffer) ,0.};
+    	}
     case T_FLOAT  : { return (COMPLEX64){*(  FLOAT32*)lpBuffer,0.};  }
     case T_DOUBLE : { return (COMPLEX64){*(  FLOAT64*)lpBuffer,0.};  }
     case T_COMPLEX: { return (COMPLEX64) *(COMPLEX64*)lpBuffer;      }
