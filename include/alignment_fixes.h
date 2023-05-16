@@ -86,6 +86,19 @@ __inline__ static FLOAT64 convertINT64FromBuffer(const void* lpBuffer)
 #endif
 }
 
+__inline__ static FLOAT64 convertFLOAT64FromBuffer(const void* lpBuffer)
+{
+#ifdef ARCHITECTURE_ARM
+	FLOAT64 tmp;
+	
+	memcpy(&tmp, lpBuffer, sizeof(FLOAT64));
+	
+	return (FLOAT64) tmp;
+#else
+	return (FLOAT64) (*(FLOAT64*)lpBuffer);
+#endif
+}
+
 __inline__ static void writeFLOAT64ToBuffer(const FLOAT64 val, void* lpBuffer)
 {
 #ifdef ARCHITECTURE_ARM

@@ -477,7 +477,11 @@ COMPLEX64 dlp_fetch(const void* lpBuffer, INT16 nTypeCode)
     		return (COMPLEX64){convertINT64FromBuffer(lpBuffer) ,0.};
     	}
     case T_FLOAT  : { return (COMPLEX64){*(  FLOAT32*)lpBuffer,0.};  }
-    case T_DOUBLE : { return (COMPLEX64){*(  FLOAT64*)lpBuffer,0.};  }
+    case T_DOUBLE : 
+    	{ 
+    		// return (COMPLEX64){*(  FLOAT64*)lpBuffer,0.};
+    		return (COMPLEX64){convertFLOAT64FromBuffer(lpBuffer) ,0.};
+    	}
     case T_COMPLEX: { return (COMPLEX64) *(COMPLEX64*)lpBuffer;      }
     default       : { return CMPLX(0);                               }
   }
