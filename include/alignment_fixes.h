@@ -136,6 +136,19 @@ __inline__ static void writeINT64ToBuffer(const INT64 val, void* lpBuffer)
 #endif
 }
 
+__inline__ static INT64 readINT64ArrayIndexFromBuffer(const void* lpBuffer, INT32 nArrIdx)
+{
+#ifdef ARCHITECTURE_ARM
+	INT64 tmp;
+	
+	memcpy(&tmp, &(((INT64*) lpBuffer)[nArrIdx]), sizeof(INT64));
+	
+	return tmp;
+#else
+	return ((INT64*)lpBuffer)[nArrIdx];
+#endif
+}
+
 /******************************************************
 **
 ** special handling of several FST_?TYPEs which are read/written unaligned

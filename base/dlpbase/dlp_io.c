@@ -450,7 +450,10 @@ INT16 dlp_printx_ext(void *lpDest, void* lpBuffer, INT16 nType, INT32 nArrIdx, B
   case T_UINT  : len = FPRINTF1(lpDest,(bCols&&!bExact)?"%8u"     :"%u"            ,(unsigned int  )((UINT32*)lpBuffer)[nArrIdx]); break;
   case T_INT   : len = FPRINTF1(lpDest,(bCols&&!bExact)?"%8d"     :"%d"            ,(int           )(( INT32*)lpBuffer)[nArrIdx]); break;
   case T_ULONG : len = FPRINTF1(lpDest,(bCols&&!bExact)?"%12lu"   :"%lu"           ,(unsigned long )((UINT64*)lpBuffer)[nArrIdx]); break;
-  case T_LONG  : len = FPRINTF1(lpDest,(bCols&&!bExact)?"%12ld"   :"%ld"           ,(long          )(( INT64*)lpBuffer)[nArrIdx]); break;
+  case T_LONG  : {
+  	  /* len = FPRINTF1(lpDest,(bCols&&!bExact)?"%12ld"   :"%ld"           ,(long          )(( INT64*)lpBuffer)[nArrIdx]); break; */
+  	  len = FPRINTF1(lpDest,(bCols&&!bExact)?"%12ld"   :"%ld", (long) readINT64ArrayIndexFromBuffer(lpBuffer, nArrIdx)); break;
+  	}
   case T_TEXT  :
   case T_STRING: len = FPRINTF1(lpDest,(bCols&&!bExact)?" %s"     :"%s"            ,(char*         )            lpBuffer          ); break;
 
