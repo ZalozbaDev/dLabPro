@@ -1016,11 +1016,40 @@ static int internal_audio_devlist(const char* devNameToFind)
   for(i = 0; i < Pa_GetDeviceCount(); i++)
   {
     const PaDeviceInfo* deviceInfo=Pa_GetDeviceInfo(i);
-    if(deviceInfo->maxInputChannels>0)
+    if (deviceInfo->maxInputChannels > 0)
+    {
       printf("Device %2i: In-Ch: %3i (In-Time: %8.4f->%8.4f) Out-Ch: %3i (Out-Time: %8.4f->%8.4f) SampRate: %g Name: %s\n",i,
         deviceInfo->maxInputChannels,deviceInfo->defaultLowInputLatency,deviceInfo->defaultHighInputLatency,
         deviceInfo->maxOutputChannels,deviceInfo->defaultLowOutputLatency,deviceInfo->defaultHighOutputLatency,
         deviceInfo->defaultSampleRate,deviceInfo->name);
+    }
+    else
+    {
+    	// identifying via GetDeviceInfo() failed, try to check parameters only
+    	PaStreamParameters inputParameters;
+    	PaStreamParameters outputParameters;
+    	double desiredSampleRate;
+    	PaError err;
+    	
+    	bzero(&inputParameters, sizeof(inputParameters)); 
+    	bzero(&outputParameters, sizeof(outputParameters)); 
+    	
+    	inputParameters.channelCount = 1;
+    	inputParameters.device = i;
+    	inputParameters.sampleFormat = paFloat32;
+    	
+    	desiredSampleRate = 16000.0;
+    	
+    	err = Pa_IsFormatSupported(&inputParameters, &outputParameters, desiredSampleRate);
+    	if (err == paFormatIsSupported)
+    	{
+    		printf( "GetDeviceInfo() failed but device %2i has requested properties!\n", i);
+    	}
+    	else
+    	{
+    		printf("Device %i cannot record audio in %.2f Hz!\n", i, desiredSampleRate);	
+    	}
+    }
     if (devNameToFind != NULL)
     {
     	if (strncasecmp(devNameToFind, deviceInfo->name,strnlen(devNameToFind, STR_LEN)) == 0)
