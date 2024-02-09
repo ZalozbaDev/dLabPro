@@ -89,6 +89,9 @@ else
     else ifneq ($(and $(findstring -linux-gnueabihf,$(OS)),$(findstring armv7l-,$(OS))),)
       OS = lin32
       ARCHITECTURE=ARM
+    else ifneq ($(and $(findstring -linux-gnu,$(OS)),$(findstring aarch64-,$(OS))),)
+      OS = lin64
+      ARCHITECTURE=ARM
     else
       $(error Unimplemented machine of gcc: "$(OS)")
     endif
